@@ -44,6 +44,9 @@ struct Seg* seg_init(struct Seg** tail, Pos xpos, Pos ypos)
 void snake_debug(struct Snake* s)
 {
     /* Print out linked list */
+
+    printf("SNAKE\n");
+
     struct Seg* seg = *(s->head);
     int i = 0;
 
@@ -72,46 +75,64 @@ void snake_lremove(struct Seg** head, uint16_t amount)
     }
 }
 
-struct Food* food_init(struct Food** tail, uint16_t xsize, uint16_t ysize)
+struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize)
 {
+    // TODO pass Matrix struct so we can increment nfood here
+    //      this we can use to calculate if matrix is full or not
+    //
     struct Food* f = malloc(sizeof(struct Food));
 
-    // FIXME should be random
-    f->xpos = get_rand(0, xsize-1);
-    f->ypos = get_rand(0, ysize-1);
-    f->ypos = 0;
+    while (1) {
+        f->xpos = get_rand(0, xsize-1);
+        f->ypos = get_rand(0, ysize-1);
+
+        // FIXME 0 is hardcoded for debugging !!!!!
+        f->ypos = 0;
+
+        // make sure we don't generate food where snake or food is
+        // FIXME this will loop forever if matrix is full of snake
+        if (seg_detect_col(stail, f->xpos, f->ypos) == NULL) {
+            if (ftail == NULL)
+                break;
+            if (food_detect_col(*ftail, f->xpos, f->ypos) == NULL)
+                break;
+        }
+    }
 
     f->grow_fac = SNAKE_GROW_FACTOR;
 
     f->next = NULL;
 
-    if (tail == NULL) {
+    if (ftail == NULL) {
         f->prev = NULL;
     }
     else {
-        f->prev = *tail;
-        (*tail)->next = f;
-        *tail = f;
+        f->prev = *ftail;
+        (*ftail)->next = f;
+        *ftail = f;
     }
+    printf("NEW FOOD @ %d x %d\n", f->xpos, f->ypos);
     return f;
 }
 
-void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize, uint16_t nfood)
+void matrix_init(struct Matrix* m, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t nfood)
 {
     m->xsize = xsize;
     m->ysize = ysize;
+
+    m->nfood = 0;
 
     // init food linked list
     m->fhead = malloc(sizeof(struct Food*));
     m->ftail = malloc(sizeof(struct Food*));
 
-    struct Food* f = food_init(NULL, xsize, ysize);
+    struct Food* f = food_init(NULL, *s->tail, xsize, ysize);
 
     *m->fhead = f;
     *m->ftail = f;
 
     for (int i=0 ; i<nfood ; i++)
-        food_init(m->ftail, xsize, ysize);
+        food_init(m->ftail, *s->tail, xsize, ysize);
 
 }
 
@@ -192,8 +213,10 @@ struct Food* food_detect_col(struct Food* tail, Pos x, Pos y)
 struct Seg* seg_detect_col(struct Seg* tail, Pos x, Pos y)
 {
     /* detect colision of head segment with a segment from snake */
-    struct Seg* seg = tail->prev;
+    //struct Seg* seg = tail->prev;
+    struct Seg* seg = tail;
     while (seg != NULL) {
+        printf("check: %d==%d AND %d==%d = %d\n", x, seg->xpos, y, seg->ypos, (x == seg->xpos && y == seg->ypos));
         if (x == seg->xpos && y == seg->ypos)
             return seg;
 
@@ -202,9 +225,51 @@ struct Seg* seg_detect_col(struct Seg* tail, Pos x, Pos y)
     return NULL;
 }
 
+void food_debug(struct Matrix* m)
+{
+    /* Print out linked list */
+
+    printf("FOOD\n");
+
+    struct Food* f = *m->fhead;
+    int i = 0;
+
+    while (f != NULL) {
+        printf("%d %dx%d\n", i, f->xpos, f->ypos);
+        f = f->next;
+        i++;
+    }
+}
+
+void food_destroy(struct Matrix* m, struct Food* f)
+{
+    struct Food* prev = f->prev;
+    struct Food* next = f->next;
+
+    if (prev != NULL && next != NULL) {
+        // food is neither head or tail
+        prev->next = next;
+        next->prev = prev;
+    }
+    else if (prev == NULL) {
+        // replace head
+        *m->fhead = next;
+        next->prev = NULL;
+    }
+    else if (next == NULL) {
+        // replace tail
+        *m->ftail = prev;
+        prev->next = NULL;
+    }
+    else {
+        printf("bot are NULL\n");
+    }
+    free(f);
+}
+
 int8_t matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v)
 {
-    /* Move snake one frame */
+    /* Move snake one frame, returns -1 on death */
 
     // TODO if snake needs to grow that should happen here
     struct Seg* old = *s->tail;
@@ -214,27 +279,30 @@ int8_t matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v)
 
     get_newxy(&x, &y, m->xsize, m->ysize, v);
 
-    // detect collision with food
-    // grow if collision is detected
-    // otherwise remove from head
-    //
-    // detect collision with self
-    struct Food* f = food_detect_col(*m->ftail, x, y);
-    if (f != NULL) {
-        s->len+=f->grow_fac;
-        printf("Ate food @ %dx%d!\n", f->xpos, f->ypos);
-    }
+    printf("POS: %d x %d\n", x, y);
 
-    if (seg_detect_col(*s->tail, x, y)) {
-        printf("You die!\n");
-        return -1;
-    }
-
+    // grow or move
     seg_init(s->tail, x, y);
     if (s->cur_len < s->len)
         s->cur_len++;
     else
         snake_lremove(s->head, 1);
+
+    // detect colision with food
+    struct Food* f = food_detect_col(*m->ftail, x, y);
+    if (f != NULL) {
+        s->len+=f->grow_fac;
+        printf("Ate food @ %dx%d!\n", f->xpos, f->ypos);
+        food_destroy(m, f);
+        food_init(m->ftail, *s->tail, m->xsize, m->ysize);
+    }
+
+    // detect collision with self
+    //if (seg_detect_col(*s->tail, x, y)) {
+    //    printf("You die!\n");
+    //    return -1;
+    //}
+
 
     return 0;
 }

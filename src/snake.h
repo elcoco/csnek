@@ -64,6 +64,7 @@ struct Matrix {
     uint32_t xsize;
     uint32_t ysize;
 
+    uint16_t nfood;
     // access to food items as a linked list
     struct Food** fhead;
     struct Food** ftail;
@@ -76,11 +77,12 @@ void snake_init(struct Snake*);
 void snake_debug(struct Snake* s);
 void snake_lremove(struct Seg** head, uint16_t amount);
 
-void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize, uint16_t nfood);
+void matrix_init(struct Matrix* m, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t nfood);
 void matrix_debug(struct Matrix* m, struct Snake* s);
 int8_t matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v);
 
-struct Food* food_init(struct Food** tail, uint16_t xsize, uint16_t ysize);
+struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize);
 struct Food* food_detect_col(struct Food* tail, Pos x, Pos y);
+void food_debug(struct Matrix* m);
 
 #endif
