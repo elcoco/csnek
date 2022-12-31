@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 // position type, represents coordinate (x or y)
 typedef uint16_t Pos;
@@ -26,6 +27,8 @@ struct Seg {
 
     Pos xpos;
     Pos ypos;
+
+    char chr;
 };
 
 struct Snake {
@@ -68,6 +71,10 @@ struct Matrix {
 void snake_init(struct Snake*);
 struct Seg* seg_init(struct Seg** tail, Pos xpos, Pos ypos);
 void snake_debug(struct Snake* s);
+void snake_lremove(struct Seg** head, uint16_t amount);
+void matrix_debug(struct Matrix* m, struct Snake* s);
+void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize);
+void matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v);
 
 
 #endif

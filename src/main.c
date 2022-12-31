@@ -6,11 +6,21 @@
 
 #include "snake.h"
 
+#define XSIZE 10
+#define YSIZE 10
+
 int main()
 {
-    struct Snake snake;
-    snake_init(&snake);
-    seg_init(snake.tail, 3, 5);
-    seg_init(snake.tail, 7, 9);
-    snake_debug(&snake);
+    struct Snake s;
+    struct Matrix m;
+
+    snake_init(&s);
+    matrix_init(&m, XSIZE, YSIZE);
+
+    while (1) {
+        matrix_next(&m, &s, VEL_E);
+        snake_debug(&s);
+        matrix_debug(&m, &s);
+        sleep(1);
+    }
 }
