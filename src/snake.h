@@ -5,6 +5,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+
+#define SNAKE_GROW_FACTOR 1
+#define SNAKE_FOOD_CHR 'F'
+#define SNAKE_SEG_CHR 'X'
 
 // position type, represents coordinate (x or y)
 typedef uint16_t Pos;
@@ -27,8 +32,6 @@ struct Seg {
 
     Pos xpos;
     Pos ypos;
-
-    char chr;
 };
 
 struct Snake {
@@ -47,9 +50,6 @@ struct Snake {
 // The stuf that our snake eats
 struct Food;
 struct Food {
-    // represent food as this char, eg: '1', '2', ...
-    char chr;
-
     // grow factor of food or the amount the snake will grow after eating it
     uint8_t grow_fac;
 
@@ -65,16 +65,22 @@ struct Matrix {
     uint32_t ysize;
 
     // access to food items as a linked list
-    struct Food* head;
+    struct Food** fhead;
+    struct Food** ftail;
 };
 
-void snake_init(struct Snake*);
 struct Seg* seg_init(struct Seg** tail, Pos xpos, Pos ypos);
+struct Seg* seg_detect_col(struct Seg* tail, Pos x, Pos y);
+
+void snake_init(struct Snake*);
 void snake_debug(struct Snake* s);
 void snake_lremove(struct Seg** head, uint16_t amount);
-void matrix_debug(struct Matrix* m, struct Snake* s);
-void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize);
-void matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v);
 
+void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize, uint16_t nfood);
+void matrix_debug(struct Matrix* m, struct Snake* s);
+int8_t matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v);
+
+struct Food* food_init(struct Food** tail, uint16_t xsize, uint16_t ysize);
+struct Food* food_detect_col(struct Food* tail, Pos x, Pos y);
 
 #endif

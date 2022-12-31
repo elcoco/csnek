@@ -1,5 +1,10 @@
 #include "snake.h"
 
+
+uint16_t get_rand(uint16_t lower, uint16_t upper) {
+    return (rand() % (upper - lower + 1)) + lower;
+}
+
 void snake_init(struct Snake* s)
 {
     s->len = 1;
@@ -22,7 +27,6 @@ struct Seg* seg_init(struct Seg** tail, Pos xpos, Pos ypos)
     struct Seg* seg = malloc(sizeof(struct Seg));
     seg->xpos = xpos;
     seg->ypos = ypos;
-    seg->chr  = 'x';
 
     seg->next = NULL;
 
@@ -68,10 +72,47 @@ void snake_lremove(struct Seg** head, uint16_t amount)
     }
 }
 
-void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize)
+struct Food* food_init(struct Food** tail, uint16_t xsize, uint16_t ysize)
+{
+    struct Food* f = malloc(sizeof(struct Food));
+
+    // FIXME should be random
+    f->xpos = get_rand(0, xsize-1);
+    f->ypos = get_rand(0, ysize-1);
+    f->ypos = 0;
+
+    f->grow_fac = SNAKE_GROW_FACTOR;
+
+    f->next = NULL;
+
+    if (tail == NULL) {
+        f->prev = NULL;
+    }
+    else {
+        f->prev = *tail;
+        (*tail)->next = f;
+        *tail = f;
+    }
+    return f;
+}
+
+void matrix_init(struct Matrix* m, uint32_t xsize, uint32_t ysize, uint16_t nfood)
 {
     m->xsize = xsize;
     m->ysize = ysize;
+
+    // init food linked list
+    m->fhead = malloc(sizeof(struct Food*));
+    m->ftail = malloc(sizeof(struct Food*));
+
+    struct Food* f = food_init(NULL, xsize, ysize);
+
+    *m->fhead = f;
+    *m->ftail = f;
+
+    for (int i=0 ; i<nfood ; i++)
+        food_init(m->ftail, xsize, ysize);
+
 }
 
 void matrix_debug(struct Matrix* m, struct Snake* s)
@@ -82,8 +123,14 @@ void matrix_debug(struct Matrix* m, struct Snake* s)
 
     struct Seg* seg = *s->head;
     while (seg) {
-        matrix[seg->ypos][seg->xpos] = seg->chr;
+        matrix[seg->ypos][seg->xpos] = SNAKE_SEG_CHR;
         seg = seg->next;
+    }
+
+    struct Food* f = *m->fhead;
+    while (f != NULL) {
+        matrix[f->ypos][f->xpos] = SNAKE_FOOD_CHR;
+        f = f->next;
     }
 
     for (Pos y=0 ; y<m->ysize ; y++) {
@@ -129,7 +176,33 @@ void get_newxy(Pos* x, Pos* y, uint32_t xsize, uint32_t ysize, enum Velocity v)
     }
 }
 
-void matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v)
+struct Food* food_detect_col(struct Food* tail, Pos x, Pos y)
+{
+    /* detect colision of head segment with a food item */
+    struct Food* f = tail;
+    while (f != NULL) {
+        if (x == f->xpos && y == f->ypos)
+            return f;
+
+        f = f->prev;
+    }
+    return NULL;
+}
+
+struct Seg* seg_detect_col(struct Seg* tail, Pos x, Pos y)
+{
+    /* detect colision of head segment with a segment from snake */
+    struct Seg* seg = tail->prev;
+    while (seg != NULL) {
+        if (x == seg->xpos && y == seg->ypos)
+            return seg;
+
+        seg = seg->prev;
+    }
+    return NULL;
+}
+
+int8_t matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v)
 {
     /* Move snake one frame */
 
@@ -140,7 +213,28 @@ void matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v)
     Pos y = old->ypos;
 
     get_newxy(&x, &y, m->xsize, m->ysize, v);
-    struct Seg* tail = seg_init(s->tail, x, y);
 
-    snake_lremove(s->head, 1);
+    // detect collision with food
+    // grow if collision is detected
+    // otherwise remove from head
+    //
+    // detect collision with self
+    struct Food* f = food_detect_col(*m->ftail, x, y);
+    if (f != NULL) {
+        s->len+=f->grow_fac;
+        printf("Ate food @ %dx%d!\n", f->xpos, f->ypos);
+    }
+
+    if (seg_detect_col(*s->tail, x, y)) {
+        printf("You die!\n");
+        return -1;
+    }
+
+    seg_init(s->tail, x, y);
+    if (s->cur_len < s->len)
+        s->cur_len++;
+    else
+        snake_lremove(s->head, 1);
+
+    return 0;
 }
