@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "utils.h"
+
 #define SNAKE_GROW_FACTOR 1
 #define SNAKE_FOOD_CHR 'F'
 #define SNAKE_SEG_CHR 'X'
@@ -43,8 +45,8 @@ struct Snake {
     uint16_t cur_len;
 
     // access to snake linked list
-    struct Seg** head;
-    struct Seg** tail;
+    struct Seg** shead;
+    struct Seg** stail;
 };
 
 // The stuf that our snake eats
@@ -60,29 +62,34 @@ struct Food {
     struct Food* next;
 };
 
-struct Matrix {
+struct Field {
     uint32_t xsize;
     uint32_t ysize;
 
-    uint16_t nfood;
+    // max amount of food items in field
+    uint16_t max_food;
+
+    // amount of food items created
+    uint16_t food_eaten;
+
     // access to food items as a linked list
     struct Food** fhead;
     struct Food** ftail;
 };
 
-struct Seg* seg_init(struct Seg** tail, Pos xpos, Pos ypos);
-struct Seg* seg_detect_col(struct Seg* tail, Pos x, Pos y);
+struct Seg* seg_init(struct Seg** stail, Pos xpos, Pos ypos);
+struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y);
 
 void snake_init(struct Snake*);
 void snake_debug(struct Snake* s);
-void snake_lremove(struct Seg** head, uint16_t amount);
+void snake_lremove(struct Seg** shead, uint16_t amount);
 
-void matrix_init(struct Matrix* m, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t nfood);
-void matrix_debug(struct Matrix* m, struct Snake* s);
-int8_t matrix_next(struct Matrix* m, struct Snake* s, enum Velocity v);
+void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t max_food);
+void field_debug(struct Field* field, struct Snake* s);
+int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v);
 
 struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize);
 struct Food* food_detect_col(struct Food* tail, Pos x, Pos y);
-void food_debug(struct Matrix* m);
+void food_debug(struct Field* field);
 
 #endif

@@ -1,7 +1,7 @@
 SRC := src
 OBJ := obj
 CFLAGS := -g -Wall 
-LIBS   := -lncursesw -lmenu -lm -lpthread -lcurl
+LIBS   := -lncursesw -lmenu -lm -lpthread
 CC := cc
 
 $(shell mkdir -p $(OBJ))
