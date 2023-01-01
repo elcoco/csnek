@@ -156,6 +156,22 @@ void field_debug(struct Field* field, struct Snake* s)
     }
 }
 
+void field_print(struct Field* field, struct Snake* s)
+{
+    /* Print field to display */
+    struct Seg* seg = *s->shead;
+    while (seg) {
+        s->write_cb(seg->xpos, seg->ypos);
+        seg = seg->next;
+    }
+
+    struct Food* f = *field->fhead;
+    while (f != NULL) {
+        field->write_cb(f->xpos, f->ypos);
+        f = f->next;
+    }
+}
+
 void get_newxy(Pos* x, Pos* y, uint32_t xsize, uint32_t ysize, enum Velocity v)
 {
     /* Get new coordinates after applying movement.

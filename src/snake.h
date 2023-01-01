@@ -47,6 +47,8 @@ struct Snake {
     // access to snake linked list
     struct Seg** shead;
     struct Seg** stail;
+
+    void(*write_cb)(Pos x, Pos y);
 };
 
 // The stuf that our snake eats
@@ -75,6 +77,8 @@ struct Field {
     // access to food items as a linked list
     struct Food** fhead;
     struct Food** ftail;
+
+    void(*write_cb)(Pos x, Pos y);
 };
 
 struct Seg* seg_init(struct Seg** stail, Pos xpos, Pos ypos);
@@ -87,6 +91,7 @@ void snake_lremove(struct Seg** shead, uint16_t amount);
 void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t max_food);
 void field_debug(struct Field* field, struct Snake* s);
 int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v);
+void field_print(struct Field* field, struct Snake* s);
 
 struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize);
 struct Food* food_detect_col(struct Food* tail, Pos x, Pos y);

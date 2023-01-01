@@ -7,6 +7,7 @@
 #include <signal.h>     // catch SIGTERM
 
 #include "snake.h"
+#include "ui.h"
 
 #define XSIZE 10
 #define YSIZE 10
@@ -19,6 +20,17 @@ int sigint_caught = 0;
 void on_sigint(int signum)
 {
     sigint_caught = 1;
+}
+
+void write_snake_cb(Pos x, Pos y)
+{
+    ui_matrix_set(&m, y, x, COLOR_RED, COLOR_BLACK, 'X');
+    debug("%d x %d\n");
+}
+
+void write_food_cb(Pos x, Pos y)
+{
+    debug("%d x %d\n");
 }
 
 int main()
@@ -40,16 +52,21 @@ int main()
 
 
 
-    struct Snake s;
+    struct Snake snake;
     struct Field field;
 
-    snake_init(&s);
-    field_init(&field, &s, XSIZE, YSIZE, NFOOD);
+    snake_init(&snake);
+    field_init(&field, &snake, XSIZE, YSIZE, NFOOD);
 
-    while (field_next(&field, &s, VEL_W) >= 0) {
-        snake_debug(&s);
+    snake.write_cb = &write_snake_cb;
+    field.write_cb = &write_food_cb;
+    
+
+    while (field_next(&field, &snake, VEL_W) >= 0) {
+        snake_debug(&snake);
         food_debug(&field);
-        field_debug(&field, &s);
+        field_debug(&field, &snake);
+        field_print(&field, &snake);
         debug("\n");
         sleep(1);
     }
