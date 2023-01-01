@@ -9,6 +9,7 @@ void snake_init(struct Snake* s)
 {
     s->len = 1;
     s->cur_len = 1;
+    s->grow_fac = SNAKE_DEFAULT_GROW_FACTOR;
 
     // create segments linked list
     s->shead = malloc(sizeof(struct Seg*));
@@ -94,7 +95,6 @@ struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, u
         }
     }
 
-    f->grow_fac = SNAKE_GROW_FACTOR;
     f->next = NULL;
 
     if (ftail == NULL) {
@@ -115,7 +115,7 @@ void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t y
     field->ysize = ysize;
 
     field->max_food = max_food;
-    field->food_eaten = 0;
+    field->score = 0;
 
     // init food linked list
     field->fhead = malloc(sizeof(struct Food*));
@@ -230,7 +230,6 @@ struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y, uint16_t roffset)
         seg = seg->prev;
 
     while (seg != NULL) {
-        debug("check: %d==%d AND %d==%d = %d\n", x, seg->xpos, y, seg->ypos, (x == seg->xpos && y == seg->ypos));
         if (x == seg->xpos && y == seg->ypos)
             return seg;
 
@@ -312,8 +311,8 @@ int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v)
     // detect colision with food
     struct Food* f = food_detect_col(*field->ftail, x, y);
     if (f != NULL) {
-        s->len+=f->grow_fac;
-        field->food_eaten++;
+        s->len+=s->grow_fac;
+        field->score++;
         debug("Ate food @ %dx%d!\n", f->xpos, f->ypos);
         food_destroy(field, f);
         food_init(field->ftail, *s->stail, field->xsize, field->ysize);

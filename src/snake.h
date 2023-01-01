@@ -9,7 +9,7 @@
 
 #include "utils.h"
 
-#define SNAKE_GROW_FACTOR 1
+#define SNAKE_DEFAULT_GROW_FACTOR 1
 #define SNAKE_FOOD_CHR 'F'
 #define SNAKE_SEG_CHR 'X'
 
@@ -44,6 +44,9 @@ struct Snake {
     uint16_t len;
     uint16_t cur_len;
 
+    // grow factor of food or the amount the snake will grow after eating it
+    uint8_t grow_fac;
+
     // access to snake linked list
     struct Seg** shead;
     struct Seg** stail;
@@ -54,8 +57,6 @@ struct Snake {
 // The stuf that our snake eats
 struct Food;
 struct Food {
-    // grow factor of food or the amount the snake will grow after eating it
-    uint8_t grow_fac;
 
     Pos xpos;
     Pos ypos;
@@ -72,7 +73,7 @@ struct Field {
     uint16_t max_food;
 
     // amount of food items created
-    uint16_t food_eaten;
+    uint16_t score;
 
     // access to food items as a linked list
     struct Food** fhead;

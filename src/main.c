@@ -8,9 +8,12 @@
 
 #include "snake.h"
 #include "ui.h"
+#include "utils.h"
 
 #define XSIZE 10
 #define YSIZE 10
+
+#define BAR_YSIZE 1
 
 #define NFOOD 1
 #define SLEEP_CHECK_INTERVAL 50
@@ -25,7 +28,9 @@ struct State {
     bool is_paused;
 };
 
-WINDOW* win;
+WINDOW* root_win;
+WINDOW* bar_win;
+WINDOW* snake_win;
 
 int sigint_caught = 0;
 
@@ -36,12 +41,12 @@ void on_sigint(int signum)
 
 void write_snake_cb(Pos x, Pos y)
 {
-    add_str(win, y, x, CRED, CDEFAULT, SNAKE_CHR);
+    add_str(snake_win, y, x, CRED, CDEFAULT, SNAKE_CHR);
 }
 
 void write_food_cb(Pos x, Pos y)
 {
-    add_str(win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
+    add_str(snake_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
 }
 
 bool check_user_input(void* arg)
@@ -58,15 +63,23 @@ bool check_user_input(void* arg)
                 s->is_stopped = true;
                 break;
             case 'h':
+                if (s->v == VEL_E)
+                    break;
                 s->v = VEL_W;
                 break;
             case 'l':
+                if (s->v == VEL_W)
+                    break;
                 s->v = VEL_E;
                 break;
             case 'k':
+                if (s->v == VEL_S)
+                    break;
                 s->v = VEL_N;
                 break;
             case 'j':
+                if (s->v == VEL_N)
+                    break;
                 s->v = VEL_S;
                 break;
             case ' ':
@@ -83,6 +96,13 @@ bool check_user_input(void* arg)
         return true;
     }
     return false;
+}
+
+void bar_print(WINDOW* win, struct Field* field)
+{
+    char buf[64] = "";
+    sprintf(buf, "Score: %d", field->score);
+    add_str(win, 0, 0, CGREEN, CDEFAULT, buf);
 }
 
 bool non_blocking_sleep(int interval, bool(*callback)(void* arg), void* arg)
@@ -123,30 +143,30 @@ int main()
     action.sa_handler = on_sigint;
     sigaction(SIGINT, &action, NULL);
 
-    //// init lock
-    //if (pthread_mutex_init(&lock, NULL) != 0)
-    //    die("\nMutex init failed\n");
-
     ui_init();
 
-    win = newwin(0, 0, 0, 0);
+    root_win = newwin(0, 0, 0, 0);
 
+    int ysize, xsize;
+    getmaxyx(root_win, ysize, xsize);
+
+    const int field_ysize = ysize - BAR_YSIZE;
+
+    bar_win = derwin(root_win, BAR_YSIZE, xsize, 0, 0);
+    snake_win = derwin(root_win, field_ysize, xsize, BAR_YSIZE, 0);
 
     struct State s;
-    state_init(&s);
-
     struct Snake snake;
     struct Field field;
 
-    int ysize, xsize;
-    getmaxyx(win, ysize, xsize);
-
+    state_init(&s);
     snake_init(&snake);
-    field_init(&field, &snake, xsize, ysize, NFOOD);
+    field_init(&field, &snake, xsize, field_ysize, NFOOD);
+
+    snake.grow_fac = 5;
 
     snake.write_cb = &write_snake_cb;
     field.write_cb = &write_food_cb;
-    
 
     while (! s.is_stopped) {
         if (! s.is_paused) {
@@ -158,9 +178,14 @@ int main()
             //food_debug(&field);
             //field_debug(&field, &snake);
 
-            ui_erase(win);
+            ui_erase(snake_win);
+            ui_erase(bar_win);
+
             field_print(&field, &snake);
-            ui_refresh(win);
+            bar_print(bar_win, &field);
+
+            ui_refresh(snake_win);
+            ui_refresh(bar_win);
         }
 
         if (non_blocking_sleep(INTERVAL, &check_user_input, &s)) {
