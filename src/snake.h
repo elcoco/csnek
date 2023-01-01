@@ -82,7 +82,7 @@ struct Field {
 };
 
 struct Seg* seg_init(struct Seg** stail, Pos xpos, Pos ypos);
-struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y);
+struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y, uint16_t roffset);
 
 void snake_init(struct Snake*);
 void snake_debug(struct Snake* s);

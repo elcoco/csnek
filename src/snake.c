@@ -83,10 +83,10 @@ struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, u
         f->ypos = get_rand(0, ysize-1);
 
         // FIXME 0 is hardcoded for debugging !!!!!
-        f->ypos = 0;
+        //f->ypos = 0;
 
         // make sure we don't generate food where snake or food is
-        if (seg_detect_col(stail, f->xpos, f->ypos) == NULL) {
+        if (seg_detect_col(stail, f->xpos, f->ypos, 0) == NULL) {
             if (ftail == NULL)
                 break;
             if (food_detect_col(*ftail, f->xpos, f->ypos) == NULL)
@@ -220,11 +220,15 @@ struct Food* food_detect_col(struct Food* tail, Pos x, Pos y)
     return NULL;
 }
 
-struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y)
+struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y, uint16_t roffset)
 {
     /* detect colision of head segment with a segment from snake */
     //struct Seg* seg = stail->prev;
     struct Seg* seg = stail;
+
+    for (int i=0 ; i<roffset ; i++)
+        seg = seg->prev;
+
     while (seg != NULL) {
         debug("check: %d==%d AND %d==%d = %d\n", x, seg->xpos, y, seg->ypos, (x == seg->xpos && y == seg->ypos));
         if (x == seg->xpos && y == seg->ypos)
@@ -299,8 +303,8 @@ int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v)
 
     // detect full field
     // FIXME uncomment, using top line only for debugging
-    //if (s->cur_len + field->nfood >= field->xsize*field->ysize) {
-    if (s->cur_len + field->max_food >= field->xsize) {
+    if (s->cur_len + field->max_food >= field->xsize*field->ysize) {
+    //if (s->cur_len + field->max_food >= field->xsize) {
         debug("field is full of snake: slen=%d, flen=%d\n", s->cur_len, field->max_food);
         return -1;
     }
@@ -316,10 +320,10 @@ int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v)
     }
 
     // detect collision with self
-    //if (seg_detect_col(*s->stail, x, y)) {
-    //    debug("You die!\n");
-    //    return -1;
-    //}
+    if (seg_detect_col(*s->stail, x, y, 1)) {
+        debug("You die!\n");
+        return -1;
+    }
 
 
     return 0;

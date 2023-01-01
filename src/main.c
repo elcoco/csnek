@@ -13,7 +13,19 @@
 #define YSIZE 10
 
 #define NFOOD 1
+#define SLEEP_CHECK_INTERVAL 50
+#define INTERVAL 100*1000
 
+#define SNAKE_CHR "█"
+#define FOOD_CHR "█"
+
+struct State {
+    enum Velocity v;
+    bool is_stopped;
+    bool is_paused;
+};
+
+WINDOW* win;
 
 int sigint_caught = 0;
 
@@ -24,13 +36,80 @@ void on_sigint(int signum)
 
 void write_snake_cb(Pos x, Pos y)
 {
-    ui_matrix_set(&m, y, x, COLOR_RED, COLOR_BLACK, 'X');
-    debug("%d x %d\n");
+    add_str(win, y, x, CRED, CDEFAULT, SNAKE_CHR);
 }
 
 void write_food_cb(Pos x, Pos y)
 {
-    debug("%d x %d\n");
+    add_str(win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
+}
+
+bool check_user_input(void* arg)
+{
+    // s struct is passed as an argument to a callback, cast it to the proper type
+    struct State* s = arg;
+
+    /* check for user input, return 1 if there was input */
+    int c = getch();
+
+    if (c != ERR) {
+        switch (c) {
+            case 'q':
+                s->is_stopped = true;
+                break;
+            case 'h':
+                s->v = VEL_W;
+                break;
+            case 'l':
+                s->v = VEL_E;
+                break;
+            case 'k':
+                s->v = VEL_N;
+                break;
+            case 'j':
+                s->v = VEL_S;
+                break;
+            case ' ':
+                s->is_paused = !s->is_paused;
+                break;
+            default:
+                return false;
+        }
+
+        // flush chars
+        while (c != ERR)
+            c = getch();
+
+        return true;
+    }
+    return false;
+}
+
+bool non_blocking_sleep(int interval, bool(*callback)(void* arg), void* arg)
+{
+    /* Do a non blocking sleep that checks for user input */
+    struct timeval t_start, t_end;
+    gettimeofday(&t_start, NULL);
+
+    while (1) {
+        gettimeofday(&t_end, NULL);
+        if ((t_end.tv_sec*1000000 + t_end.tv_usec) - (t_start.tv_sec*1000000 + t_start.tv_usec) >= interval)
+            break;
+
+        // if input
+        if (callback(arg))
+            return true;
+
+        usleep(SLEEP_CHECK_INTERVAL);
+    }
+    return false;
+}
+
+void state_init(struct State* s)
+{
+    s->v = VEL_E;
+    s->is_stopped = false;
+    s->is_paused = false;
 }
 
 int main()
@@ -50,25 +129,42 @@ int main()
 
     ui_init();
 
+    win = newwin(0, 0, 0, 0);
 
+
+    struct State s;
+    state_init(&s);
 
     struct Snake snake;
     struct Field field;
 
+    int ysize, xsize;
+    getmaxyx(win, ysize, xsize);
+
     snake_init(&snake);
-    field_init(&field, &snake, XSIZE, YSIZE, NFOOD);
+    field_init(&field, &snake, xsize, ysize, NFOOD);
 
     snake.write_cb = &write_snake_cb;
     field.write_cb = &write_food_cb;
     
 
-    while (field_next(&field, &snake, VEL_W) >= 0) {
-        snake_debug(&snake);
-        food_debug(&field);
-        field_debug(&field, &snake);
-        field_print(&field, &snake);
-        debug("\n");
-        sleep(1);
+    while (! s.is_stopped) {
+        if (! s.is_paused) {
+
+            if (field_next(&field, &snake, s.v) < 0)
+                s.is_stopped = true;;
+
+            //snake_debug(&snake);
+            //food_debug(&field);
+            //field_debug(&field, &snake);
+
+            ui_erase(win);
+            field_print(&field, &snake);
+            ui_refresh(win);
+        }
+
+        if (non_blocking_sleep(INTERVAL, &check_user_input, &s)) {
+        }
     }
 
     ui_cleanup();
