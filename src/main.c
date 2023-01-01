@@ -22,6 +22,7 @@
 #define SNAKE_CHR "█"
 #define FOOD_CHR "█"
 
+
 struct State {
     enum Velocity v;
     bool is_stopped;
@@ -49,7 +50,7 @@ void write_food_cb(Pos x, Pos y)
     add_str(snake_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
 }
 
-bool check_user_input(void* arg)
+bool get_user_input(void* arg)
 {
     // s struct is passed as an argument to a callback, cast it to the proper type
     struct State* s = arg;
@@ -62,21 +63,25 @@ bool check_user_input(void* arg)
             case 'q':
                 s->is_stopped = true;
                 break;
+            case KEY_LEFT:
             case 'h':
                 if (s->v == VEL_E)
                     break;
                 s->v = VEL_W;
                 break;
+            case KEY_RIGHT:
             case 'l':
                 if (s->v == VEL_W)
                     break;
                 s->v = VEL_E;
                 break;
+            case KEY_UP:
             case 'k':
                 if (s->v == VEL_S)
                     break;
                 s->v = VEL_N;
                 break;
+            case KEY_DOWN:
             case 'j':
                 if (s->v == VEL_N)
                     break;
@@ -100,9 +105,7 @@ bool check_user_input(void* arg)
 
 void bar_print(WINDOW* win, struct Field* field)
 {
-    char buf[64] = "";
-    sprintf(buf, "Score: %d", field->score);
-    add_str(win, 0, 0, CGREEN, CDEFAULT, buf);
+    add_str(win, 0, 0, CGREEN, CDEFAULT, "Score: %d", field->score);
 }
 
 bool non_blocking_sleep(int interval, bool(*callback)(void* arg), void* arg)
@@ -160,7 +163,7 @@ int main()
     struct Field field;
 
     state_init(&s);
-    snake_init(&snake);
+    snake_init(&snake, xsize/2, field_ysize/2);
     field_init(&field, &snake, xsize, field_ysize, NFOOD);
 
     snake.grow_fac = 5;
@@ -188,7 +191,7 @@ int main()
             ui_refresh(bar_win);
         }
 
-        if (non_blocking_sleep(INTERVAL, &check_user_input, &s)) {
+        if (non_blocking_sleep(INTERVAL, &get_user_input, &s)) {
         }
     }
 

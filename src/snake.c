@@ -2,10 +2,12 @@
 
 
 uint16_t get_rand(uint16_t lower, uint16_t upper) {
+
+    srand(time(NULL));
     return (rand() % (upper - lower + 1)) + lower;
 }
 
-void snake_init(struct Snake* s)
+void snake_init(struct Snake* s, Pos xstart, Pos ystart)
 {
     s->len = 1;
     s->cur_len = 1;
@@ -15,7 +17,7 @@ void snake_init(struct Snake* s)
     s->shead = malloc(sizeof(struct Seg*));
     s->stail = malloc(sizeof(struct Seg*));
 
-    struct Seg* seg = seg_init(NULL, 0, 0);
+    struct Seg* seg = seg_init(NULL, xstart, ystart);
 
     *(s->shead) = seg;
     *(s->stail) = seg;
