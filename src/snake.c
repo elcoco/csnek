@@ -43,7 +43,7 @@ void get_newxy(Pos* x, Pos* y, uint32_t xsize, uint32_t ysize, enum Velocity v)
 
 void get_free_loc(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize, Pos* x, Pos* y)
 {
-    /* Get unoccupied coordinates, may take a while */
+    /* Get unoccupied coordinates */
     while (1) {
         *x = get_rand(0, xsize-1);
         *y = get_rand(0, ysize-1);
