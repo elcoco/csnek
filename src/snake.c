@@ -3,7 +3,6 @@
 
 uint16_t get_rand(uint16_t lower, uint16_t upper)
 {
-    //srand(time(NULL));
     return (rand() % (upper - lower + 1)) + lower;
 }
 
@@ -67,12 +66,12 @@ void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t y
     field->max_food = max_food;
     field->score = 0;
 
+    // set random seed for food location generation
+    srand(time(NULL));
+
     // init food linked list
     field->fhead = malloc(sizeof(struct Food*));
     field->ftail = malloc(sizeof(struct Food*));
-
-    // set random seed for food location generation
-    srand(time(NULL));
 
     struct Food* f = food_init(NULL, *s->stail, xsize, ysize);
 
@@ -101,8 +100,7 @@ void field_draw(struct Field* field, struct Snake* s)
 
 enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v)
 {
-    /* Move snake one frame, returns -1 on death */
-
+    /* Move snake one frame */
     struct Seg* old = *s->stail;
 
     Pos x = old->xpos;
@@ -269,7 +267,7 @@ void food_destroy(struct Field* field, struct Food* f)
         prev->next = NULL;
     }
     else {
-        debug("bot are NULL\n");
+        debug("Should be unreachable\n");
     }
     free(f);
 }
@@ -279,7 +277,6 @@ void food_destroy(struct Field* field, struct Food* f)
 void snake_debug(struct Snake* s)
 {
     /* Print out linked list */
-
     debug("SNAKE\n");
 
     struct Seg* seg = *(s->shead);
@@ -295,7 +292,6 @@ void snake_debug(struct Snake* s)
 void food_debug(struct Field* field)
 {
     /* Print out linked list */
-
     debug("FOOD\n");
 
     struct Food* f = *field->fhead;
