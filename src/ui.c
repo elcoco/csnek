@@ -35,11 +35,34 @@ void ui_cleanup()
     endwin();
 }
 
+
 int add_chr(WINDOW* win, int32_t y, int32_t x, int32_t fgcol, int32_t bgcol, char c)
 {
     set_color(win, fgcol, bgcol);
     mvwaddch(win, y, x, c);
     unset_color(win, fgcol, bgcol);
+    return 0;
+}
+
+int add_str_center(WINDOW* win, int32_t fgcol, int32_t bgcol, char* fmt, ...)
+{
+    va_list ptr;
+    va_start(ptr, fmt);
+
+    // FIXME should subtract half of stringlen
+    /*
+    uint16_t x,y;
+    getmaxyx(win, y, x);
+    x = x - strlen(string)/2;
+    y /= 2;
+    */
+
+    set_color(win, fgcol, bgcol);
+    wmove(win, y/2, x/2);
+    vw_printw(win, fmt, ptr);
+    unset_color(win, fgcol, bgcol);
+    va_end(ptr);
+
     return 0;
 }
 

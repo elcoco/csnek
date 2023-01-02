@@ -31,7 +31,7 @@ struct State {
 
 WINDOW* root_win;
 WINDOW* bar_win;
-WINDOW* snake_win;
+WINDOW* field_win;
 
 int sigint_caught = 0;
 
@@ -40,14 +40,14 @@ void on_sigint(int signum)
     sigint_caught = 1;
 }
 
-void write_snake_cb(Pos x, Pos y)
+void draw_snake_cb(Pos x, Pos y)
 {
-    add_str(snake_win, y, x, CRED, CDEFAULT, SNAKE_CHR);
+    add_str(field_win, y, x, CRED, CDEFAULT, SNAKE_CHR);
 }
 
-void write_food_cb(Pos x, Pos y)
+void draw_food_cb(Pos x, Pos y)
 {
-    add_str(snake_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
+    add_str(field_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
 }
 
 bool get_user_input(void* arg)
@@ -103,7 +103,7 @@ bool get_user_input(void* arg)
     return false;
 }
 
-void bar_print(WINDOW* win, struct Field* field)
+void bar_draw(WINDOW* win, struct Field* field)
 {
     add_str(win, 0, 0, CGREEN, CDEFAULT, "Score: %d", field->score);
 }
@@ -156,7 +156,7 @@ int main()
     const int field_ysize = ysize - BAR_YSIZE;
 
     bar_win = derwin(root_win, BAR_YSIZE, xsize, 0, 0);
-    snake_win = derwin(root_win, field_ysize, xsize, BAR_YSIZE, 0);
+    field_win = derwin(root_win, field_ysize, xsize, BAR_YSIZE, 0);
 
     struct State s;
     struct Snake snake;
@@ -168,11 +168,15 @@ int main()
 
     snake.grow_fac = 5;
 
-    snake.write_cb = &write_snake_cb;
-    field.write_cb = &write_food_cb;
+    snake.draw_cb = &draw_snake_cb;
+    field.draw_cb = &draw_food_cb;
 
     while (! s.is_stopped) {
-        if (! s.is_paused) {
+        if (s.is_paused) {
+            add_str_center(field_win, CGREEN, CDEFAULT, "PAUSED");
+            ui_refresh(field_win);
+        }
+        else {
 
             // get next frame
             enum GameState gs = field_next(&field, &snake, s.v);
@@ -182,13 +186,13 @@ int main()
             else if (gs == GAME_LOST)
                 s.is_stopped = true;
 
-            ui_erase(snake_win);
+            ui_erase(field_win);
             ui_erase(bar_win);
 
-            field_print(&field, &snake);
-            bar_print(bar_win, &field);
+            field_draw(&field, &snake);
+            bar_draw(bar_win, &field);
 
-            ui_refresh(snake_win);
+            ui_refresh(field_win);
             ui_refresh(bar_win);
         }
 

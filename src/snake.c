@@ -64,18 +64,18 @@ void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t y
         food_init(field->ftail, *s->stail, xsize, ysize);
 }
 
-void field_print(struct Field* field, struct Snake* s)
+void field_draw(struct Field* field, struct Snake* s)
 {
     /* Print field to display */
     struct Seg* seg = *s->shead;
     while (seg) {
-        s->write_cb(seg->xpos, seg->ypos);
+        s->draw_cb(seg->xpos, seg->ypos);
         seg = seg->next;
     }
 
     struct Food* f = *field->fhead;
     while (f != NULL) {
-        field->write_cb(f->xpos, f->ypos);
+        field->draw_cb(f->xpos, f->ypos);
         f = f->next;
     }
 }

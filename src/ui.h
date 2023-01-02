@@ -37,6 +37,7 @@ void unset_color(WINDOW* win, uint32_t fgcolor, uint32_t bgcolor);
 int add_chr(WINDOW* win, int32_t y, int32_t x, int32_t fgcol, int32_t bgcol, char c);
 int add_str(WINDOW* win, int32_t y, int32_t x, int32_t fgcol, int32_t bgcol, char* fmt, ...);
 int add_str_color(WINDOW* win, int32_t y, int32_t x, int32_t fgcol, int32_t bgcol, bool in_bg, char* fmt, ...);
+int add_str_center(WINDOW* win, int32_t fgcol, int32_t bgcol, char* fmt, ...);
 
 void ui_show_error(WINDOW* win, char* fmt, ...);
 
