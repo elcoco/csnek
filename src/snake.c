@@ -1,6 +1,5 @@
 #include "snake.h"
 
-
 uint16_t get_rand(uint16_t lower, uint16_t upper)
 {
     return (rand() % (upper - lower + 1)) + lower;
