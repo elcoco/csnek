@@ -50,9 +50,9 @@ int add_str_center(WINDOW* win, int32_t fgcol, int32_t bgcol, char* fmt, ...)
     va_start(ptr, fmt);
 
     // FIXME should subtract half of stringlen
-    /*
     uint16_t x,y;
     getmaxyx(win, y, x);
+    /*
     x = x - strlen(string)/2;
     y /= 2;
     */

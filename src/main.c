@@ -42,11 +42,13 @@ void on_sigint(int signum)
 
 void draw_snake_cb(Pos x, Pos y)
 {
+    /* callback to draw snake segment to display */
     add_str(field_win, y, x, CRED, CDEFAULT, SNAKE_CHR);
 }
 
 void draw_food_cb(Pos x, Pos y)
 {
+    /* callback to draw food item to display */
     add_str(field_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
 }
 
@@ -146,6 +148,8 @@ int main()
     action.sa_handler = on_sigint;
     sigaction(SIGINT, &action, NULL);
 
+
+    // setup ncurses windows
     ui_init();
 
     root_win = newwin(0, 0, 0, 0);
@@ -158,6 +162,8 @@ int main()
     bar_win = derwin(root_win, BAR_YSIZE, xsize, 0, 0);
     field_win = derwin(root_win, field_ysize, xsize, BAR_YSIZE, 0);
 
+
+    // setup snake structs
     struct State s;
     struct Snake snake;
     struct Field field;
@@ -178,7 +184,7 @@ int main()
         }
         else {
 
-            // get next frame
+            // go to next frame
             enum GameState gs = field_next(&field, &snake, s.v);
 
             if (gs == GAME_LOST)
