@@ -25,6 +25,12 @@ enum Velocity {
     VEL_W
 };
 
+// Is returned from field_next when calling for next frame calculation
+enum GameState {
+    GAME_WON,
+    GAME_LOST,
+    GAME_PLAYING
+};
 
 // Represents segment of snake linked as linked list
 struct Seg;
@@ -90,11 +96,12 @@ void snake_lremove(struct Seg** shead, uint16_t amount);
 
 void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t max_food);
 void field_debug(struct Field* field, struct Snake* s);
-int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v);
+enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v);
 void field_print(struct Field* field, struct Snake* s);
 
 struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize);
 struct Food* food_detect_col(struct Food* tail, Pos x, Pos y);
+void food_destroy(struct Field* field, struct Food* f);
 void food_debug(struct Field* field);
 
 #endif

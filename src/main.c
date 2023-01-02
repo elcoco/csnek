@@ -174,12 +174,13 @@ int main()
     while (! s.is_stopped) {
         if (! s.is_paused) {
 
-            if (field_next(&field, &snake, s.v) < 0)
-                s.is_stopped = true;;
+            // get next frame
+            enum GameState gs = field_next(&field, &snake, s.v);
 
-            //snake_debug(&snake);
-            //food_debug(&field);
-            //field_debug(&field, &snake);
+            if (gs == GAME_LOST)
+                s.is_stopped = true;
+            else if (gs == GAME_LOST)
+                s.is_stopped = true;
 
             ui_erase(snake_win);
             ui_erase(bar_win);
