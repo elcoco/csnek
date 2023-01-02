@@ -29,11 +29,10 @@ enum Velocity {
 // Represents segment of snake linked as linked list
 struct Seg;
 struct Seg {
-    struct Seg* prev;
-    struct Seg* next;
-
     Pos xpos;
     Pos ypos;
+    struct Seg* prev;
+    struct Seg* next;
 };
 
 struct Snake {

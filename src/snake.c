@@ -61,7 +61,7 @@ void snake_debug(struct Snake* s)
 
 void snake_lremove(struct Seg** shead, uint16_t amount)
 {
-    /* Free hold head and replace by new head */
+    /* Free old head and replace by new head */
     for (int i=0 ; i<amount ; i++) {
         struct Seg* old = *shead;
 
@@ -81,12 +81,10 @@ struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, u
 {
     struct Food* f = malloc(sizeof(struct Food));
 
+    // find free coordinates for food item
     while (1) {
         f->xpos = get_rand(0, xsize-1);
         f->ypos = get_rand(0, ysize-1);
-
-        // FIXME 0 is hardcoded for debugging !!!!!
-        //f->ypos = 0;
 
         // make sure we don't generate food where snake or food is
         if (seg_detect_col(stail, f->xpos, f->ypos, 0) == NULL) {
@@ -303,9 +301,7 @@ int8_t field_next(struct Field* field, struct Snake* s, enum Velocity v)
         snake_lremove(s->shead, 1);
 
     // detect full field
-    // FIXME uncomment, using top line only for debugging
     if (s->cur_len + field->max_food >= field->xsize*field->ysize) {
-    //if (s->cur_len + field->max_food >= field->xsize) {
         debug("field is full of snake: slen=%d, flen=%d\n", s->cur_len, field->max_food);
         return -1;
     }
