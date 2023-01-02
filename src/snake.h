@@ -29,7 +29,7 @@ enum Velocity {
 enum GameState {
     GAME_WON,
     GAME_LOST,
-    GAME_PLAYING
+    GAME_NONE
 };
 
 // Represents segment of snake linked as linked list

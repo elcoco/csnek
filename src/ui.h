@@ -21,6 +21,8 @@
 #define CWHITE   8
 #define CBLACK   9
 
+#define MSGSIZ 64
+
 static const int8_t ccolors[] = {-1, COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE, COLOR_BLACK}; 
 static const uint8_t ncolors = 9;
 

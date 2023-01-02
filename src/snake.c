@@ -123,7 +123,7 @@ enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v)
     }
 
 
-    return GAME_PLAYING;
+    return GAME_NONE;
 }
 
 

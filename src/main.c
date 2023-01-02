@@ -137,6 +137,17 @@ void state_init(struct State* s)
     s->is_paused = false;
 }
 
+void show_msg(char* msg)
+{
+    /* Show a message and wait for keypress */
+    add_str_center(field_win, CGREEN, CDEFAULT, msg);
+    ui_refresh(field_win);
+
+    nodelay(stdscr, FALSE);  // do block
+    getch();
+    nodelay(stdscr, TRUE);   // don't block
+}
+
 int main()
 {
     // for UTF8 in curses, messes with atof() see: read_stdin()
@@ -177,20 +188,25 @@ int main()
     snake.draw_cb = &draw_snake_cb;
     field.draw_cb = &draw_food_cb;
 
+
+    // main loop
     while (! s.is_stopped) {
         if (s.is_paused) {
-            add_str_center(field_win, CGREEN, CDEFAULT, "PAUSED");
-            ui_refresh(field_win);
+            show_msg("PAUSED");
+            s.is_paused = false;
         }
         else {
-
             // go to next frame
             enum GameState gs = field_next(&field, &snake, s.v);
 
-            if (gs == GAME_LOST)
+            if (gs == GAME_LOST) {
+                show_msg("YOU LOST!");
                 s.is_stopped = true;
-            else if (gs == GAME_LOST)
+            }
+            else if (gs == GAME_WON) {
+                show_msg("YOU WON!");
                 s.is_stopped = true;
+            }
 
             ui_erase(field_win);
             ui_erase(bar_win);
