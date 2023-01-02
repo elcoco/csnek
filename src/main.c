@@ -10,15 +10,17 @@
 #include "ui.h"
 #include "utils.h"
 
-#define XSIZE 10
-#define YSIZE 10
+// grow n segments when eating food
+#define GROW_FAC 7
 
-#define BAR_YSIZE 1
-
+// amount of food items that are on screen at once
 #define NFOOD 1
-#define SLEEP_CHECK_INTERVAL 50
+
+// interval inbetween frames
 #define INTERVAL 100*1000
 
+#define BAR_YSIZE 1
+#define SLEEP_CHECK_INTERVAL 50
 #define SNAKE_CHR "█"
 #define FOOD_CHR "█"
 
@@ -183,7 +185,7 @@ int main()
     snake_init(&snake, xsize/2, field_ysize/2);
     field_init(&field, &snake, xsize, field_ysize, NFOOD);
 
-    snake.grow_fac = 5;
+    snake.grow_fac = GROW_FAC;
 
     snake.draw_cb = &draw_snake_cb;
     field.draw_cb = &draw_food_cb;
@@ -200,7 +202,7 @@ int main()
             enum GameState gs = field_next(&field, &snake, s.v);
 
             if (gs == GAME_LOST) {
-                show_msg("YOU LOST!");
+                show_msg("YOU LOST BRAH!");
                 s.is_stopped = true;
             }
             else if (gs == GAME_WON) {

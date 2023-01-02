@@ -1,9 +1,9 @@
 #include "snake.h"
 
 
-uint16_t get_rand(uint16_t lower, uint16_t upper) {
-
-    srand(time(NULL));
+uint16_t get_rand(uint16_t lower, uint16_t upper)
+{
+    //srand(time(NULL));
     return (rand() % (upper - lower + 1)) + lower;
 }
 
@@ -12,7 +12,6 @@ void get_newxy(Pos* x, Pos* y, uint32_t xsize, uint32_t ysize, enum Velocity v)
     /* Get new coordinates after applying movement.
      * Wrap if outsize matrix dimensions 
      */
-
     if (v == VEL_N) {
         if (*y == 0)
             *y = ysize-1;
@@ -42,6 +41,23 @@ void get_newxy(Pos* x, Pos* y, uint32_t xsize, uint32_t ysize, enum Velocity v)
     }
 }
 
+void get_free_loc(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize, Pos* x, Pos* y)
+{
+    /* Get unoccupied coordinates, may take a while */
+    while (1) {
+        *x = get_rand(0, xsize-1);
+        *y = get_rand(0, ysize-1);
+
+        // make sure we don't generate food where snake or food is
+        if (seg_detect_col(stail, *x, *y, 0) == NULL) {
+            if (ftail == NULL)
+                break;
+            if (food_detect_col(*ftail, *x, *y) == NULL)
+                break;
+        }
+    }
+}
+
 
 void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t max_food)
 {
@@ -55,12 +71,15 @@ void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t y
     field->fhead = malloc(sizeof(struct Food*));
     field->ftail = malloc(sizeof(struct Food*));
 
+    // set random seed for food location generation
+    srand(time(NULL));
+
     struct Food* f = food_init(NULL, *s->stail, xsize, ysize);
 
     *field->fhead = f;
     *field->ftail = f;
 
-    for (int i=0 ; i<max_food ; i++)
+    for (int i=1 ; i<max_food ; i++)
         food_init(field->ftail, *s->stail, xsize, ysize);
 }
 
@@ -91,8 +110,6 @@ enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v)
 
     get_newxy(&x, &y, field->xsize, field->ysize, v);
 
-    debug("POS: %d x %d\n", x, y);
-
     // grow or move
     seg_init(s->stail, x, y);
     if (s->cur_len < s->len)
@@ -112,8 +129,8 @@ enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v)
         s->len+=s->grow_fac;
         field->score++;
         debug("Ate food @ %dx%d!\n", f->xpos, f->ypos);
-        food_destroy(field, f);
         food_init(field->ftail, *s->stail, field->xsize, field->ysize);
+        food_destroy(field, f);
     }
 
     // detect collision with self
@@ -121,7 +138,6 @@ enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v)
         debug("You die!\n");
         return GAME_LOST;
     }
-
 
     return GAME_NONE;
 }
@@ -169,7 +185,6 @@ struct Seg* seg_init(struct Seg** stail, Pos xpos, Pos ypos)
     struct Seg* seg = malloc(sizeof(struct Seg));
     seg->xpos = xpos;
     seg->ypos = ypos;
-
     seg->next = NULL;
 
     if (stail == NULL) {
@@ -185,8 +200,7 @@ struct Seg* seg_init(struct Seg** stail, Pos xpos, Pos ypos)
 
 struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y, uint16_t roffset)
 {
-    /* detect colision of head segment with a segment from snake */
-    //struct Seg* seg = stail->prev;
+    /* detect colision of head segment with a segment from snake body */
     struct Seg* seg = stail;
 
     for (int i=0 ; i<roffset ; i++)
@@ -202,25 +216,11 @@ struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y, uint16_t roffset)
 }
 
 
-
 struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize)
 {
     struct Food* f = malloc(sizeof(struct Food));
 
-    // find free coordinates for food item
-    while (1) {
-        f->xpos = get_rand(0, xsize-1);
-        f->ypos = get_rand(0, ysize-1);
-
-        // make sure we don't generate food where snake or food is
-        if (seg_detect_col(stail, f->xpos, f->ypos, 0) == NULL) {
-            if (ftail == NULL)
-                break;
-            if (food_detect_col(*ftail, f->xpos, f->ypos) == NULL)
-                break;
-        }
-    }
-
+    get_free_loc(ftail, stail, xsize, ysize, &f->xpos, &f->ypos);
     f->next = NULL;
 
     if (ftail == NULL) {
@@ -231,7 +231,7 @@ struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, u
         (*ftail)->next = f;
         *ftail = f;
     }
-    debug("NEW FOOD @ %d x %d\n", f->xpos, f->ypos);
+    debug("Generated food @ %d x %d\n", f->xpos, f->ypos);
     return f;
 }
 
@@ -273,8 +273,6 @@ void food_destroy(struct Field* field, struct Food* f)
     }
     free(f);
 }
-
-
 
 
 /* Some debug functions */
@@ -335,4 +333,3 @@ void field_debug(struct Field* field, struct Snake* s)
         debug("\n");
     }
 }
-
