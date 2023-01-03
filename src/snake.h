@@ -9,20 +9,21 @@
 
 #include "utils.h"
 
+#define SNAKE_DEFAULT_MAX_FOOD 1
 #define SNAKE_DEFAULT_GROW_FACTOR 1
-#define SNAKE_FOOD_CHR 'F'
-#define SNAKE_SEG_CHR 'X'
+#define SNAKE_DEBUG_FOOD_CHR 'x'
+#define SNAKE_DEBUG_SEG_CHR 'o'
 
 // position type, represents coordinate (x or y)
 typedef uint16_t Pos;
 
 // Represents direction of movement.
 // Changes after user input
-enum Velocity {
-    VEL_N,
-    VEL_E,
-    VEL_S,
-    VEL_W
+enum Direction {
+    DIR_N,
+    DIR_E,
+    DIR_S,
+    DIR_W
 };
 
 // Is returned from field_next when calling for next frame calculation
@@ -44,13 +45,10 @@ struct Seg {
 struct Snake {
     // The length of the snake after eating something
     // This does not necessarily reflect current length
-    // so snake may need to grow (or shrink) to become equal
-    // to len
+    // After eating, the snake may need to grow (or shrink)
+    // to become equal to len
     uint16_t len;
     uint16_t cur_len;
-
-    // grow factor of food or the amount the snake will grow after eating it
-    uint8_t grow_fac;
 
     // access to snake linked list
     struct Seg** shead;
@@ -60,48 +58,58 @@ struct Snake {
 };
 
 // The stuf that our snake eats
-struct Food;
-struct Food {
-
+struct FoodItem;
+struct FoodItem {
     Pos xpos;
     Pos ypos;
 
-    struct Food* prev;
-    struct Food* next;
+    struct FoodItem* prev;
+    struct FoodItem* next;
 };
 
-struct Field {
-    uint32_t xsize;
-    uint32_t ysize;
-
-    // max amount of food items in field
-    uint16_t max_food;
-
-    // amount of food items created
-    uint16_t score;
-
+struct Food {
     // access to food items as a linked list
-    struct Food** fhead;
-    struct Food** ftail;
+    struct FoodItem** fhead;
+    struct FoodItem** ftail;
 
     void(*draw_cb)(Pos x, Pos y);
 };
 
+struct Game {
+    // field dimensions
+    uint32_t xsize;
+    uint32_t ysize;
+
+    // amount of food items created
+    uint16_t score;
+
+    // grow factor or the amount the snake will grow after eating it
+    uint8_t grow_fac;
+
+    // max amount of food items in field
+    uint16_t maxfood;
+
+    struct Snake snake;
+    struct Food food;
+};
+
+// public functions
+void game_init(struct Game* game, uint32_t xsize, uint32_t ysize, uint16_t maxfood);
+enum GameState game_next(struct Game* game, enum Direction v);
+void game_draw(struct Game* game);
+
+
+// private functions
+void snake_init(struct Snake*, Pos xstart, Pos ystart);
+void snake_lremove(struct Seg** shead, uint16_t amount);
+
 struct Seg* seg_init(struct Seg** stail, Pos xpos, Pos ypos);
 struct Seg* seg_detect_col(struct Seg* stail, Pos x, Pos y, uint16_t roffset);
 
-void snake_init(struct Snake*, Pos xstart, Pos ystart);
-void snake_debug(struct Snake* s);
-void snake_lremove(struct Seg** shead, uint16_t amount);
+void food_init(struct Food* food, struct Seg* stail, uint16_t xsize, uint16_t ysize, uint16_t maxfood);
+struct FoodItem* food_detect_col(struct FoodItem* ftail, Pos x, Pos y);
 
-void field_init(struct Field* field, struct Snake* s, uint32_t xsize, uint32_t ysize, uint16_t max_food);
-void field_debug(struct Field* field, struct Snake* s);
-enum GameState field_next(struct Field* field, struct Snake* s, enum Velocity v);
-void field_draw(struct Field* field, struct Snake* s);
-
-struct Food* food_init(struct Food** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize);
-struct Food* food_detect_col(struct Food* tail, Pos x, Pos y);
-void food_destroy(struct Field* field, struct Food* f);
-void food_debug(struct Field* field);
+struct FoodItem* fooditem_init(struct FoodItem** ftail, struct Seg* stail, uint16_t xsize, uint16_t ysize);
+void fooditem_destroy(struct FoodItem* f, struct FoodItem** fhead, struct FoodItem** ftail);
 
 #endif

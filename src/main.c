@@ -14,7 +14,7 @@
 #define GROW_FAC 7
 
 // amount of food items that are on screen at once
-#define NFOOD 1
+#define MAXFOOD 1
 
 // interval inbetween frames
 #define INTERVAL 100*1000
@@ -26,9 +26,12 @@
 
 
 struct State {
-    enum Velocity v;
+    enum Direction v;
     bool is_stopped;
     bool is_paused;
+
+    Pos xsize;
+    Pos ysize;
 };
 
 WINDOW* root_win;
@@ -54,6 +57,20 @@ void draw_food_cb(Pos x, Pos y)
     add_str(field_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
 }
 
+void check_term_size(WINDOW* win, Pos xsize, Pos ysize)
+{
+    /* Check if window is the size of field or bigger
+     * Otherwise, display message and wait for window resize
+     */
+    int x,y;
+
+    while (COLS < xsize || LINES < ysize) {
+        getmaxyx(root_win, y, x);
+        debug("xy: %d:%d ? %d:%d\n", xsize, ysize, y, x);
+        sleep(1);
+    }
+}
+
 bool get_user_input(void* arg)
 {
     // s struct is passed as an argument to a callback, cast it to the proper type
@@ -69,31 +86,34 @@ bool get_user_input(void* arg)
                 break;
             case KEY_LEFT:
             case 'h':
-                if (s->v == VEL_E)
+                if (s->v == DIR_E)
                     break;
-                s->v = VEL_W;
+                s->v = DIR_W;
                 break;
             case KEY_RIGHT:
             case 'l':
-                if (s->v == VEL_W)
+                if (s->v == DIR_W)
                     break;
-                s->v = VEL_E;
+                s->v = DIR_E;
                 break;
             case KEY_UP:
             case 'k':
-                if (s->v == VEL_S)
+                if (s->v == DIR_S)
                     break;
-                s->v = VEL_N;
+                s->v = DIR_N;
                 break;
             case KEY_DOWN:
             case 'j':
-                if (s->v == VEL_N)
+                if (s->v == DIR_N)
                     break;
-                s->v = VEL_S;
+                s->v = DIR_S;
                 break;
             case ' ':
                 s->is_paused = !s->is_paused;
                 break;
+            //case KEY_RESIZE:
+            //    check_term_size(root_win, s->xsize, s->ysize);
+            //    break;
             default:
                 return false;
         }
@@ -107,9 +127,9 @@ bool get_user_input(void* arg)
     return false;
 }
 
-void bar_draw(WINDOW* win, struct Field* field)
+void bar_draw(WINDOW* win, struct Game* game)
 {
-    add_str(win, 0, 0, CGREEN, CDEFAULT, "Score: %d", field->score);
+    add_str(win, 0, 0, CGREEN, CDEFAULT, "Score: %d", game->score);
 }
 
 bool non_blocking_sleep(int interval, bool(*callback)(void* arg), void* arg)
@@ -134,9 +154,12 @@ bool non_blocking_sleep(int interval, bool(*callback)(void* arg), void* arg)
 
 void state_init(struct State* s)
 {
-    s->v = VEL_E;
+    s->v = DIR_E;
     s->is_stopped = false;
     s->is_paused = false;
+
+    getmaxyx(root_win, s->xsize, s->ysize);
+
 }
 
 void show_msg(char* msg)
@@ -178,18 +201,14 @@ int main()
 
     // setup snake structs
     struct State s;
-    struct Snake snake;
-    struct Field field;
+    struct Game game;
 
     state_init(&s);
-    snake_init(&snake, xsize/2, field_ysize/2);
-    field_init(&field, &snake, xsize, field_ysize, NFOOD);
+    game_init(&game, xsize, field_ysize, MAXFOOD);
 
-    snake.grow_fac = GROW_FAC;
-
-    snake.draw_cb = &draw_snake_cb;
-    field.draw_cb = &draw_food_cb;
-
+    game.grow_fac = GROW_FAC;
+    game.snake.draw_cb = &draw_snake_cb;
+    game.food.draw_cb = &draw_food_cb;
 
     // main loop
     while (! s.is_stopped) {
@@ -199,7 +218,7 @@ int main()
         }
         else {
             // go to next frame
-            enum GameState gs = field_next(&field, &snake, s.v);
+            enum GameState gs = game_next(&game, s.v);
 
             if (gs == GAME_LOST) {
                 show_msg("YOU LOST BRAH!");
@@ -213,8 +232,8 @@ int main()
             ui_erase(field_win);
             ui_erase(bar_win);
 
-            field_draw(&field, &snake);
-            bar_draw(bar_win, &field);
+            game_draw(&game);
+            bar_draw(bar_win, &game);
 
             ui_refresh(field_win);
             ui_refresh(bar_win);
