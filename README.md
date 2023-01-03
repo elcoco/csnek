@@ -1,4 +1,4 @@
-# snake
+# csnek
 
 A simple ncurses snake clone for linux.  
 
@@ -15,6 +15,7 @@ A simple ncurses snake clone for linux.
 
 ![screenshot.png](screenshot.png)
 
-## Info
+## Bot Info
 - [https://en.wikipedia.org/wiki/A*_search_algorithm]()  
 - [https://johnflux.com/category/nokia-6110-snake-project/]()  
+- [https://www.youtube.com/watch?v=tjQIO1rqTBE]()
