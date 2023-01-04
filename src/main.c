@@ -9,6 +9,7 @@
 #include "snake.h"
 #include "ui.h"
 #include "utils.h"
+#include "astar.h"
 
 // grow n segments when eating food
 #define GROW_FAC 7
@@ -173,6 +174,80 @@ void show_msg(char* msg)
     nodelay(stdscr, TRUE);   // don't block
 }
 
+void play_game(struct State* s, struct Game* game)
+{
+    // main loop
+    while (! s->is_stopped) {
+        if (s->is_paused) {
+            show_msg("PAUSED");
+            s->is_paused = false;
+        }
+        else {
+            // go to next frame
+            enum GameState gs = game_next(game, s->v);
+
+            if (gs == GAME_LOST) {
+                show_msg("YOU LOST BRAH!");
+                s->is_stopped = true;
+            }
+            else if (gs == GAME_WON) {
+                show_msg("YOU WON!");
+                s->is_stopped = true;
+            }
+
+            ui_erase(field_win);
+            ui_erase(bar_win);
+
+            game_draw(game);
+            bar_draw(bar_win, game);
+
+            ui_refresh(field_win);
+            ui_refresh(bar_win);
+        }
+
+        if (non_blocking_sleep(INTERVAL, &get_user_input, s)) {
+        }
+    }
+}
+
+void draw_open_cb(Pos x, Pos y)
+{
+    /* callback to draw food item to display */
+    add_str(field_win, y, x, CGREEN, CDEFAULT, FOOD_CHR);
+    ui_refresh(field_win);
+}
+
+void draw_closed_cb(Pos x, Pos y)
+{
+    /* callback to draw food item to display */
+    add_str(field_win, y, x, CRED, CDEFAULT, FOOD_CHR);
+    ui_refresh(field_win);
+}
+
+
+void draw_path_cb(Pos x, Pos y)
+{
+    /* callback to draw food item to display */
+    add_str(field_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
+    ui_refresh(field_win);
+}
+
+void play_bot(struct State* s, struct Game* game)
+{
+    struct Astar astar;
+    astar.draw_open_cb = &draw_open_cb;
+    astar.draw_closed_cb = &draw_closed_cb;
+    astar.draw_path_cb = &draw_path_cb;
+
+    astar_init(&astar, 0, 0, 9, 9);
+    astar_debug(&astar);
+    astar_find_path(&astar);
+
+    show_msg("bever");
+
+    
+}
+
 int main()
 {
     // for UTF8 in curses, messes with atof() see: read_stdin()
@@ -210,38 +285,8 @@ int main()
     game.snake.draw_cb = &draw_snake_cb;
     game.food.draw_cb = &draw_food_cb;
 
-    // main loop
-    while (! s.is_stopped) {
-        if (s.is_paused) {
-            show_msg("PAUSED");
-            s.is_paused = false;
-        }
-        else {
-            // go to next frame
-            enum GameState gs = game_next(&game, s.v);
-
-            if (gs == GAME_LOST) {
-                show_msg("YOU LOST BRAH!");
-                s.is_stopped = true;
-            }
-            else if (gs == GAME_WON) {
-                show_msg("YOU WON!");
-                s.is_stopped = true;
-            }
-
-            ui_erase(field_win);
-            ui_erase(bar_win);
-
-            game_draw(&game);
-            bar_draw(bar_win, &game);
-
-            ui_refresh(field_win);
-            ui_refresh(bar_win);
-        }
-
-        if (non_blocking_sleep(INTERVAL, &get_user_input, &s)) {
-        }
-    }
+    //play_game(&s, &game);
+    play_bot(&s, &game);
 
     ui_cleanup();
 }
