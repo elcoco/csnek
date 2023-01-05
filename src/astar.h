@@ -31,8 +31,8 @@
  * f = g_score + h_score
  */
 
-#define XSIZE 10
-#define YSIZE 10
+#define XSIZE 50
+#define YSIZE 50
 
 typedef uint16_t Pos;
 
@@ -46,6 +46,9 @@ struct Node {
 
     Pos x;
     Pos y;
+
+    // keep reference to previous node
+    struct Node* parent;
 };
 
 struct Set {
@@ -80,6 +83,7 @@ struct Astar {
     void(*draw_open_cb)(Pos x, Pos y);
     void(*draw_closed_cb)(Pos x, Pos y);
     void(*draw_path_cb)(Pos x, Pos y);
+    void(*draw_wall_cb)(Pos x, Pos y);
 };
 
 void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1);

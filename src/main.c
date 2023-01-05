@@ -170,7 +170,7 @@ void show_msg(char* msg)
     ui_refresh(field_win);
 
     nodelay(stdscr, FALSE);  // do block
-    getch();
+    wgetch(field_win);
     nodelay(stdscr, TRUE);   // don't block
 }
 
@@ -232,16 +232,27 @@ void draw_path_cb(Pos x, Pos y)
     ui_refresh(field_win);
 }
 
+void draw_wall_cb(Pos x, Pos y)
+{
+    /* callback to draw food item to display */
+    add_str(field_win, y, x, CMAGENTA, CDEFAULT, "X");
+    ui_refresh(field_win);
+}
+
 void play_bot(struct State* s, struct Game* game)
 {
     struct Astar astar;
     astar.draw_open_cb = &draw_open_cb;
     astar.draw_closed_cb = &draw_closed_cb;
     astar.draw_path_cb = &draw_path_cb;
+    astar.draw_wall_cb = &draw_wall_cb;
 
-    astar_init(&astar, 0, 0, 9, 9);
-    astar_debug(&astar);
+    // draw start/end
+
+    astar_init(&astar, 0, 0, 49, 25);
+    //astar_debug(&astar);
     astar_find_path(&astar);
+
 
     show_msg("bever");
 

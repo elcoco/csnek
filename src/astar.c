@@ -1,5 +1,10 @@
 #include "astar.h"
 
+uint16_t get_rnd(uint16_t lower, uint16_t upper)
+{
+    return (rand() % (upper - lower + 1)) + lower;
+}
+
 uint32_t pos2i(Pos x, Pos y, uint32_t xsize)
 {
     /* Translate coordinates into array indices */
@@ -20,6 +25,9 @@ struct Node* get_node(struct Node* grid, Pos x, Pos y)
 
 void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
 {
+    // set random seed
+    srand(time(NULL));
+
     astar->xsize = XSIZE;
     astar->ysize = YSIZE;
 
@@ -35,8 +43,25 @@ void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
         n->g = 0;
 
         i2pos(i, &n->x, &n->y, XSIZE);
+        n->is_wall = false;
 
         n->h = abs(x1 - n->x) + abs(y1 - n->y);
+
+        //if (get_rnd(0, 100) < 15)
+        //    n->is_wall = true;
+        if (n->x == 25 && n->y >= 0 && n->y < YSIZE)
+            n->is_wall = true;
+
+        if (n->x == 25 && n->y == 25)
+            n->is_wall = false;
+
+        if (n->x == 30 && n->y >= 0 && n->y < YSIZE)
+            n->is_wall = true;
+
+        if (n->x == 30 && n->y == 5)
+            n->is_wall = false;
+
+        n->parent = NULL;
     }
 
     astar->openset.len = 0;
@@ -53,7 +78,7 @@ void astar_debug(struct Astar* astar)
 
 }
 
-void astar_draw(struct Astar* astar)
+void astar_draw(struct Astar* astar, struct Node* n_cur)
 {
     struct Node** n = astar->openset.set;
     for (int i=0 ; i<astar->openset.len ; i++, n++)
@@ -63,9 +88,17 @@ void astar_draw(struct Astar* astar)
     for (int i=0 ; i<astar->closedset.len ; i++, n++)
         astar->draw_closed_cb((*n)->x, (*n)->y);
 
-    n = astar->path.set;
-    for (int i=0 ; i<astar->path.len ; i++, n++)
-        astar->draw_path_cb((*n)->x, (*n)->y);
+    for (int i=0 ; i<astar->xsize*astar->ysize ; i++) {
+        struct Node* n = &(astar->grid[i]);
+        if (n->is_wall)
+            astar->draw_wall_cb(n->x, n->y);
+    }
+
+    path_trace_back(astar, n_cur);
+
+    // draw start and endpoints
+    astar->draw_path_cb(astar->x0, astar->y0);
+    astar->draw_path_cb(astar->x1, astar->y1);
 }
 
 struct Node* astar_find_lowest_f(struct Set* set)
@@ -132,28 +165,48 @@ bool is_in_grid(Pos x, Pos y, uint16_t xsize, uint16_t ysize)
     return (x >= 0 && y >= 0 && x < xsize && y < ysize);
 }
 
-void add_to_openset(struct Astar* astar, struct Node* prev, Pos x, Pos y) {
+void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y) {
     /* move node to openset if it doesn't exist in closedset */
 
-    if (is_in_grid(x, y, astar->xsize, astar->ysize)) {
-        struct Node* n = get_node(astar->grid, x, y);
+    // exit if node is not in grid
+    if (!is_in_grid(x, y, astar->xsize, astar->ysize))
+        return;
 
-        if (!set_node_exists(&astar->closedset, n)) {
+    struct Node* n = get_node(astar->grid, x, y);
 
-            uint16_t tmpg = prev->g + 1;
+    // exit if node is a wall
+    if (n->is_wall)
+        return;
 
-            if (set_node_exists(&astar->openset, n)) {
+    // exit if node is in closedlist
+    if (set_node_exists(&astar->closedset, n))
+        return;
 
-                // check if we already have a more efficient route
-                if (tmpg < n->g)
-                    n->g = tmpg;
-                else
-                    n->g = prev->g + 1;
-            }
-            n->f = n->g + n->h;
+    int cur_g = parent->g + 1;
+    int cur_f = n->h + cur_g;
+
+    // if node has been seen before check if it already has a shorter path
+    // check if one of these is true:
+    //   - new path is shorter than old path
+    //   - node is not in openset
+    if ((n->parent != NULL && cur_f < n->f) || !set_node_exists(&astar->openset, n)) {
+        n->parent = parent;
+        n->g = cur_g;
+        n->f = cur_f;
+        if (!set_node_exists(&astar->openset, n))
             set_add_node(&astar->openset, n);
-        }
     }
+}
+
+void path_trace_back(struct Astar* astar, struct Node* n_end)
+{
+    struct Node* n = n_end;
+    while (n != NULL) {
+        astar->draw_path_cb(n->x, n->y);
+        n = n->parent;
+    }
+
+
 }
 
 void astar_find_path(struct Astar* astar)
@@ -167,13 +220,15 @@ void astar_find_path(struct Astar* astar)
 
     // start with start node
     set_add_node(openset, n_start);
+    int i = 0;
 
     while (openset->len > 0) {
         struct Node* n_cur = astar_find_lowest_f(openset);
-        debug("current: %d x %d\n", n_cur->x, n_cur->y);
+        debug("[%d] current: %d x %d\n", i++, n_cur->x, n_cur->y);
 
         if (n_cur->x == n_end->x && n_cur->y == n_end->y) {
             debug("Reached end node\n");
+            astar_draw(astar, n_cur);
             break;
         }
 
@@ -183,20 +238,19 @@ void astar_find_path(struct Astar* astar)
 
         //set_add_node(path, n_cur);
 
-
         // add neighbours of current node to openset
         // only if they do not eist in closedset
-        add_to_openset(astar, n_cur, n_cur->x, n_cur->y-1);
+        add_to_openset(astar, n_cur, n_cur->x,   n_cur->y-1);
         add_to_openset(astar, n_cur, n_cur->x+1, n_cur->y);
-        add_to_openset(astar, n_cur, n_cur->x, n_cur->y+1);
+        add_to_openset(astar, n_cur, n_cur->x,   n_cur->y+1);
         add_to_openset(astar, n_cur, n_cur->x-1, n_cur->y);
 
-        set_debug(closedset, "closed");
-        set_debug(openset, "open");
+        //set_debug(closedset, "closed");
+        //set_debug(openset, "open");
 
 
-        astar_draw(astar);
-        usleep(0.3 * 1000 * 1000);
+        astar_draw(astar, n_cur);
+        //usleep(0.01 * 1000 * 1000);
 
     }
 
