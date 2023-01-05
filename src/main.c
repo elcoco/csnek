@@ -10,6 +10,7 @@
 #include "ui.h"
 #include "utils.h"
 #include "astar.h"
+#include "bot.h"
 
 // grow n segments when eating food
 #define GROW_FAC 7
@@ -214,49 +215,46 @@ void draw_open_cb(Pos x, Pos y)
 {
     /* callback to draw food item to display */
     add_str(field_win, y, x, CGREEN, CDEFAULT, FOOD_CHR);
-    ui_refresh(field_win);
 }
 
 void draw_closed_cb(Pos x, Pos y)
 {
     /* callback to draw food item to display */
     add_str(field_win, y, x, CRED, CDEFAULT, FOOD_CHR);
-    ui_refresh(field_win);
 }
-
 
 void draw_path_cb(Pos x, Pos y)
 {
     /* callback to draw food item to display */
     add_str(field_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
-    ui_refresh(field_win);
 }
 
 void draw_wall_cb(Pos x, Pos y)
 {
     /* callback to draw food item to display */
     add_str(field_win, y, x, CMAGENTA, CDEFAULT, "X");
+}
+
+void draw_refresh_cb()
+{
     ui_refresh(field_win);
 }
 
 void play_bot(struct State* s, struct Game* game)
 {
-    struct Astar astar;
-    astar.draw_open_cb = &draw_open_cb;
-    astar.draw_closed_cb = &draw_closed_cb;
-    astar.draw_path_cb = &draw_path_cb;
-    astar.draw_wall_cb = &draw_wall_cb;
+    uint16_t xsize, ysize;
+    getmaxyx(root_win, ysize, xsize);
 
-    // draw start/end
+    struct Bot bot;
+    bot_init(&bot, xsize, ysize);
 
-    astar_init(&astar, 0, 0, 49, 25);
-    //astar_debug(&astar);
-    astar_find_path(&astar);
+    bot.draw_open_cb = &draw_open_cb;
+    bot.draw_closed_cb = &draw_closed_cb;
+    bot.draw_path_cb = &draw_path_cb;
+    bot.draw_wall_cb = &draw_wall_cb;
+    bot.draw_refresh_cb = &draw_refresh_cb;
 
-
-    show_msg("bever");
-
-    
+    bot_run(&bot);
 }
 
 int main()

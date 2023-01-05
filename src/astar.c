@@ -18,18 +18,24 @@ void i2pos(uint32_t i, Pos* x, Pos* y, uint32_t xsize)
     *y = i / xsize;
 }
 
-struct Node* get_node(struct Node* grid, Pos x, Pos y)
+struct Node* get_node(struct Node* grid, Pos x, Pos y, uint16_t xsize)
 {
-    return &grid[pos2i(x, y, XSIZE)];
+    return &grid[pos2i(x, y, xsize)];
 }
 
-void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
+void path_trace_back(struct Astar* astar, struct Node* n_end)
+{
+    struct Node* n = n_end;
+    while (n != NULL) {
+        astar->draw_path_cb(n->x, n->y);
+        n = n->parent;
+    }
+}
+
+void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
 {
     // set random seed
     srand(time(NULL));
-
-    astar->xsize = XSIZE;
-    astar->ysize = YSIZE;
 
     astar->x0 = x0;
     astar->y0 = y0;
@@ -37,25 +43,25 @@ void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
     astar->y1 = y1;
 
     struct Node* n = astar->grid;
-
-    for (int i=0 ; i<XSIZE*YSIZE ; i++, n++) {
+    for (int i=0 ; i<astar->xsize*astar->ysize ; i++, n++) {
         n->f = 0;
         n->g = 0;
 
-        i2pos(i, &n->x, &n->y, XSIZE);
+        i2pos(i, &n->x, &n->y, astar->xsize);
         n->is_wall = false;
 
         n->h = abs(x1 - n->x) + abs(y1 - n->y);
 
-        //if (get_rnd(0, 100) < 15)
-        //    n->is_wall = true;
-        if (n->x == 25 && n->y >= 0 && n->y < YSIZE)
+        if (get_rnd(0, 100) < 15)
+            n->is_wall = true;
+
+        if (n->x == 25 && n->y >= 0 && n->y < astar->ysize)
             n->is_wall = true;
 
         if (n->x == 25 && n->y == 25)
             n->is_wall = false;
 
-        if (n->x == 30 && n->y >= 0 && n->y < YSIZE)
+        if (n->x == 30 && n->y >= 0 && n->y < astar->ysize)
             n->is_wall = true;
 
         if (n->x == 30 && n->y == 5)
@@ -63,16 +69,33 @@ void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
 
         n->parent = NULL;
     }
+}
+
+void astar_init(struct Astar* astar, struct Node* grid, struct Node** openset, struct Node** closedset, uint16_t xsize, uint16_t ysize)
+{
+    astar->xsize = xsize;
+    astar->ysize = ysize;
+
+    astar->grid = grid;
+    astar->openset.set = openset;
+    astar->closedset.set = closedset;
 
     astar->openset.len = 0;
     astar->closedset.len = 0;
+
+    // set default values for callbacks. NULL will not draw!
+    astar->draw_open_cb   = NULL;
+    astar->draw_closed_cb = NULL;
+    astar->draw_wall_cb   = NULL;
+    astar->draw_path_cb   = NULL;
+    astar->draw_refresh_cb     = NULL;
 }
 
 void astar_debug(struct Astar* astar)
 {
     struct Node* n = astar->grid;
 
-    for (int i=0 ; i<XSIZE*YSIZE ; i++, n++) {
+    for (int i=0 ; i<astar->xsize*astar->ysize ; i++, n++) {
         debug("[%d] %d x %d\n", i, n->x, n->y);
     }
 
@@ -80,25 +103,37 @@ void astar_debug(struct Astar* astar)
 
 void astar_draw(struct Astar* astar, struct Node* n_cur)
 {
-    struct Node** n = astar->openset.set;
-    for (int i=0 ; i<astar->openset.len ; i++, n++)
-        astar->draw_open_cb((*n)->x, (*n)->y);
+    struct Node** n;
 
-    n = astar->closedset.set;
-    for (int i=0 ; i<astar->closedset.len ; i++, n++)
-        astar->draw_closed_cb((*n)->x, (*n)->y);
-
-    for (int i=0 ; i<astar->xsize*astar->ysize ; i++) {
-        struct Node* n = &(astar->grid[i]);
-        if (n->is_wall)
-            astar->draw_wall_cb(n->x, n->y);
+    if (astar->draw_open_cb != NULL) {
+        n = astar->openset.set;
+        for (int i=0 ; i<astar->openset.len ; i++, n++)
+            astar->draw_open_cb((*n)->x, (*n)->y);
     }
 
-    path_trace_back(astar, n_cur);
+    if (astar->draw_closed_cb != NULL) {
+        n = astar->closedset.set;
+        for (int i=0 ; i<astar->closedset.len ; i++, n++)
+            astar->draw_closed_cb((*n)->x, (*n)->y);
+    }
+
+    if (astar->draw_wall_cb != NULL) {
+        for (int i=0 ; i<astar->xsize*astar->ysize ; i++) {
+            struct Node* n = &astar->grid[i];
+            if (n->is_wall)
+                astar->draw_wall_cb(n->x, n->y);
+        }
+    }
+
+    if (astar->draw_path_cb != NULL)
+        path_trace_back(astar, n_cur);
+
+    if (astar->draw_refresh_cb != NULL)
+        astar->draw_refresh_cb();
 
     // draw start and endpoints
-    astar->draw_path_cb(astar->x0, astar->y0);
-    astar->draw_path_cb(astar->x1, astar->y1);
+    //astar->draw_path_cb(astar->x0, astar->y0);
+    //astar->draw_path_cb(astar->x1, astar->y1);
 }
 
 struct Node* astar_find_lowest_f(struct Set* set)
@@ -157,7 +192,6 @@ void set_debug(struct Set* set, char* prefix)
         struct Node* n = set->set[i];
         debug("[%s][%d] %dx%d f=%d g=%d, h=%d\n", prefix, i, n->x, n->y, n->f, n->g, n->h); 
     }
-
 }
 
 bool is_in_grid(Pos x, Pos y, uint16_t xsize, uint16_t ysize)
@@ -172,7 +206,7 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y) {
     if (!is_in_grid(x, y, astar->xsize, astar->ysize))
         return;
 
-    struct Node* n = get_node(astar->grid, x, y);
+    struct Node* n = get_node(astar->grid, x, y, astar->xsize);
 
     // exit if node is a wall
     if (n->is_wall)
@@ -198,38 +232,28 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y) {
     }
 }
 
-void path_trace_back(struct Astar* astar, struct Node* n_end)
+enum ASResult astar_find_path(struct Astar* astar)
 {
-    struct Node* n = n_end;
-    while (n != NULL) {
-        astar->draw_path_cb(n->x, n->y);
-        n = n->parent;
-    }
-
-
-}
-
-void astar_find_path(struct Astar* astar)
-{
-    struct Node* n_start = get_node(astar->grid, astar->x0, astar->y0);
-    struct Node* n_end = get_node(astar->grid, astar->x1, astar->y1);
+    struct Node* n_start = get_node(astar->grid, astar->x0, astar->y0, astar->xsize);
+    struct Node* n_end = get_node(astar->grid, astar->x1, astar->y1, astar->xsize);
 
     struct Set* openset = &astar->openset;
     struct Set* closedset = &astar->closedset;
-    struct Set* path = &astar->path;
 
     // start with start node
     set_add_node(openset, n_start);
     int i = 0;
 
+    struct Node* n_cur;
+
     while (openset->len > 0) {
-        struct Node* n_cur = astar_find_lowest_f(openset);
+        n_cur = astar_find_lowest_f(openset);
         debug("[%d] current: %d x %d\n", i++, n_cur->x, n_cur->y);
 
         if (n_cur->x == n_end->x && n_cur->y == n_end->y) {
             debug("Reached end node\n");
             astar_draw(astar, n_cur);
-            break;
+            return AS_SOLVED;
         }
 
         set_add_node(closedset, n_cur);
@@ -240,6 +264,8 @@ void astar_find_path(struct Astar* astar)
 
         // add neighbours of current node to openset
         // only if they do not eist in closedset
+        // NOTE: there is very clearly a bias towards North/East because
+        //       that is wat we're checking first!
         add_to_openset(astar, n_cur, n_cur->x,   n_cur->y-1);
         add_to_openset(astar, n_cur, n_cur->x+1, n_cur->y);
         add_to_openset(astar, n_cur, n_cur->x,   n_cur->y+1);
@@ -249,10 +275,17 @@ void astar_find_path(struct Astar* astar)
         //set_debug(openset, "open");
 
 
+        // drawing makes things a LOT slower
         astar_draw(astar, n_cur);
+
         //usleep(0.01 * 1000 * 1000);
 
     }
 
     debug("DONE!\n");
+
+    // FIXME drawing will crash if there are no nodes
+    astar_draw(astar, n_cur);
+
+    return AS_UNSOLVED;
 }

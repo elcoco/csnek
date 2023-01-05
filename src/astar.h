@@ -34,6 +34,12 @@
 #define XSIZE 50
 #define YSIZE 50
 
+enum ASResult {
+    AS_SOLVED,
+    AS_UNSOLVED,
+    AS_ERROR
+};
+
 typedef uint16_t Pos;
 
 struct Node {
@@ -55,7 +61,8 @@ struct Set {
     uint32_t len;
 
     // TODO find a more memory efficient way to store nodes
-    struct Node* set[XSIZE*YSIZE];
+    struct Node** set;
+    //struct Node* set[100*100];
 };
 
 struct Astar {
@@ -70,11 +77,8 @@ struct Astar {
     Pos x1;
     Pos y1;
 
-    // the most efficient path from start to end
-    // TODO tweak size
-    struct Set path;
-    
-    struct Node grid[XSIZE*YSIZE];
+    struct Node* grid;
+
     struct Set openset;
 
     // Nodes that are finished being evaluated and should never be revisited
@@ -84,10 +88,13 @@ struct Astar {
     void(*draw_closed_cb)(Pos x, Pos y);
     void(*draw_path_cb)(Pos x, Pos y);
     void(*draw_wall_cb)(Pos x, Pos y);
+    void(*draw_refresh_cb)();
+
 };
 
-void astar_init(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1);
+void astar_init(struct Astar* astar, struct Node* grid, struct Node** openset, struct Node** closedset, uint16_t xsize, uint16_t ysize);
+void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1);
 void astar_debug(struct Astar* astar);
-void astar_find_path(struct Astar* astar);
+enum ASResult astar_find_path(struct Astar* astar);
 
 #endif
