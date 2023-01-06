@@ -235,7 +235,7 @@ struct FoodItem* fooditem_init(struct FoodItem** ftail, struct Seg* stail, uint1
         (*ftail)->next = f;
         *ftail = f;
     }
-    debug("Generated food @ %d x %d\n", f->xpos, f->ypos);
+    //debug("Generated food @ %d x %d\n", f->xpos, f->ypos);
     return f;
 }
 

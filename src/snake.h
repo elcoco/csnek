@@ -23,7 +23,8 @@ enum Direction {
     DIR_N,
     DIR_E,
     DIR_S,
-    DIR_W
+    DIR_W,
+    DIR_NONE
 };
 
 // Is returned from field_next when calling for next frame calculation

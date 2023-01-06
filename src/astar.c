@@ -51,6 +51,7 @@ void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
         n->is_wall = false;
 
         n->h = abs(x1 - n->x) + abs(y1 - n->y);
+        /*
 
         if (get_rnd(0, 100) < 15)
             n->is_wall = true;
@@ -66,6 +67,7 @@ void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
 
         if (n->x == 30 && n->y == 5)
             n->is_wall = false;
+        */
 
         n->parent = NULL;
     }
@@ -248,16 +250,16 @@ enum ASResult astar_find_path(struct Astar* astar)
 
     while (openset->len > 0) {
         n_cur = astar_find_lowest_f(openset);
-        debug("[%d] current: %d x %d\n", i++, n_cur->x, n_cur->y);
+        //debug("[%d] current: %d x %d\n", i++, n_cur->x, n_cur->y);
 
         if (n_cur->x == n_end->x && n_cur->y == n_end->y) {
-            debug("Reached end node\n");
-            astar_draw(astar, n_cur);
+            //debug("Reached end node\n");
+            //astar_draw(astar, n_cur);
             return AS_SOLVED;
         }
 
         set_add_node(closedset, n_cur);
-        debug("[close] add: %d x %d, cur set len: %d\n", n_cur->x, n_cur->y, closedset->len);
+        //debug("[close] add: %d x %d, cur set len: %d\n", n_cur->x, n_cur->y, closedset->len);
         set_remove_node(openset, n_cur);
 
         //set_add_node(path, n_cur);
@@ -276,13 +278,10 @@ enum ASResult astar_find_path(struct Astar* astar)
 
 
         // drawing makes things a LOT slower
-        astar_draw(astar, n_cur);
-
-        //usleep(0.01 * 1000 * 1000);
-
+        // astar_draw(astar, n_cur);
     }
 
-    debug("DONE!\n");
+    //debug("DONE!\n");
 
     // FIXME drawing will crash if there are no nodes
     astar_draw(astar, n_cur);

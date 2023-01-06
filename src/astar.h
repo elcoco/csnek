@@ -97,4 +97,6 @@ void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1);
 void astar_debug(struct Astar* astar);
 enum ASResult astar_find_path(struct Astar* astar);
 
+struct Node* get_node(struct Node* grid, Pos x, Pos y, uint16_t xsize);
+
 #endif

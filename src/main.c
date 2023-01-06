@@ -226,7 +226,7 @@ void draw_closed_cb(Pos x, Pos y)
 void draw_path_cb(Pos x, Pos y)
 {
     /* callback to draw food item to display */
-    add_str(field_win, y, x, CBLUE, CDEFAULT, FOOD_CHR);
+    add_str(field_win, y, x, CWHITE, CDEFAULT, FOOD_CHR);
 }
 
 void draw_wall_cb(Pos x, Pos y)
@@ -243,10 +243,10 @@ void draw_refresh_cb()
 void play_bot(struct State* s, struct Game* game)
 {
     uint16_t xsize, ysize;
-    getmaxyx(root_win, ysize, xsize);
+    getmaxyx(field_win, ysize, xsize);
 
     struct Bot bot;
-    bot_init(&bot, xsize, ysize);
+    bot_init(&bot, game, xsize, ysize);
 
     bot.draw_open_cb = &draw_open_cb;
     bot.draw_closed_cb = &draw_closed_cb;
@@ -254,7 +254,7 @@ void play_bot(struct State* s, struct Game* game)
     bot.draw_wall_cb = &draw_wall_cb;
     bot.draw_refresh_cb = &draw_refresh_cb;
 
-    bot_run(&bot);
+    bot_run(&bot, field_win);
 }
 
 int main()
