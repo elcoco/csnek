@@ -167,6 +167,23 @@ struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t
     return *winner;
 }
 
+struct Node* astar_find_highest_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
+{
+    /* Go through set and find node with lowest fscore
+     * returns node and its index in the set */
+    *winner = *set->set;
+    struct Node** n = set->set;
+    *winner_i = 0;
+
+    for (int i=0 ; i<set->len ; i++, n++) {
+        if ((*n)->f > (*winner)->f) {
+            *winner = *n;
+            *winner_i = i;
+        }
+    }
+    return *winner;
+}
+
 void set_remove_node(struct Set* set, uint32_t node_i)
 {
     /* Remove node @node_i from array, shift everything to left */
@@ -236,7 +253,7 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y) {
     }
 }
 
-enum ASResult astar_find_path(struct Astar* astar)
+enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type)
 {
     struct Node* n_start = get_node(astar->grid, astar->x0, astar->y0, astar->xsize);
     struct Node* n_end = get_node(astar->grid, astar->x1, astar->y1, astar->xsize);
@@ -252,7 +269,10 @@ enum ASResult astar_find_path(struct Astar* astar)
     uint32_t n_cur_i;
 
     while (openset->len > 0) {
-        astar_find_lowest_f(openset, &n_cur, &n_cur_i);
+        if (path_type == AS_SHORTEST)
+            astar_find_lowest_f(openset, &n_cur, &n_cur_i);
+        else
+            astar_find_highest_f(openset, &n_cur, &n_cur_i);
 
         if (n_cur->x == n_end->x && n_cur->y == n_end->y)
             return AS_SOLVED;

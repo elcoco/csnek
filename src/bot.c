@@ -64,8 +64,13 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
             seg = seg->next;
         }
 
-        // solve path using algorithm
-        enum ASResult res = astar_find_path(&astar);
+        enum ASResult res;
+
+        // solve path using algorithm, use longest route as snake grows
+        if (bot->game->snake.len < 100)
+            res = astar_find_path(&astar, AS_SHORTEST);
+        else
+            res = astar_find_path(&astar, AS_LONGEST);
 
         if (res == AS_UNSOLVED) {
             show_msg("ASTAR UNSOLVABLE");
@@ -73,32 +78,45 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
         }
 
         // get last node in found path from astar
-        struct Node* n = get_node(astar.grid, end->xpos, end->ypos, bot->xsize);
+        struct Node* n_end = get_node(astar.grid, end->xpos, end->ypos, bot->xsize);
 
         werase(field_win);
 
         // draw path
-        astar_draw(&astar, n);
+        astar_draw(&astar, n_end);
+
+        struct Node* n_prev = get_node(astar.grid, start->xpos, start->ypos, bot->xsize);
 
         // find first node in path
-        while (n->g != 1)
-            n = n->parent;
+        for (int gi=0 ; gi<=n_end->g ; gi++) {
 
-        // find direction change from start and recommendation
-        enum Direction dir = pos_to_dir(start->xpos, start->ypos, n->x, n->y);
+            //while (n->g != 1)
+            //    n = n->parent;
+            struct Node* n = n_end;
 
-        // apply move
-        enum GameState gs = game_next(bot->game, dir);
+            while (n->g != gi)
+                n = n->parent;
 
-        game_draw(bot->game);
+            // find direction change from start and recommendation
+            enum Direction dir = pos_to_dir(n_prev->x, n_prev->y, n->x, n->y);
 
-        // draw bar
-        char buf[256] = "";
-        sprintf(buf, "Iteration: %d  snek_len: %d  score: %d, openset_len: %d, closedset_len: %d", i, bot->game->snake.len, bot->game->score, astar.openset.len, astar.closedset.len);
-        draw_bar(bar_win, buf);
-        wrefresh(bar_win);
-        bot->draw_refresh_cb();
+            // apply move
+            enum GameState gs = game_next(bot->game, dir);
 
+            werase(field_win);
+            //astar_draw(&astar, n_end);
+            game_draw(bot->game);
 
+            // draw bar
+            char buf[256] = "";
+            sprintf(buf, "Iteration: %d  snek_len: %d  score: %d, openset_len: %d, closedset_len: %d", i, bot->game->snake.len, bot->game->score, astar.openset.len, astar.closedset.len);
+            draw_bar(bar_win, buf);
+            wrefresh(bar_win);
+            bot->draw_refresh_cb();
+
+            usleep(2*1000);
+
+            n_prev = n;
+        }
     }
 }
