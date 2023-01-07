@@ -22,9 +22,18 @@ enum Direction pos_to_dir(Pos x0, Pos y0, Pos x1, Pos y1)
         return DIR_NONE;
 }
 
-void bot_run(struct Bot* bot, WINDOW* win)
+static void draw_bar(WINDOW* win, char* str)
 {
-    while (1) {
+    add_str(win, 0, 0, CGREEN, CDEFAULT, "%s", str);
+}
+
+
+void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
+{
+    // FIXME All references to curses should be removed from this module,
+    //       Drawing should only happen by using callbacks
+    //
+    for (int i=0 ; ; i++) {
         struct Astar astar;
 
         // we can't use malloc so we need to init everything here
@@ -66,7 +75,7 @@ void bot_run(struct Bot* bot, WINDOW* win)
         // get last node in found path from astar
         struct Node* n = get_node(astar.grid, end->xpos, end->ypos, bot->xsize);
 
-        werase(win);
+        werase(field_win);
 
         // draw path
         astar_draw(&astar, n);
@@ -82,7 +91,14 @@ void bot_run(struct Bot* bot, WINDOW* win)
         enum GameState gs = game_next(bot->game, dir);
 
         game_draw(bot->game);
+
+        // draw bar
+        char buf[256] = "";
+        sprintf(buf, "Iteration: %d  snek_len: %d  score: %d, openset_len: %d, closedset_len: %d", i, bot->game->snake.len, bot->game->score, astar.openset.len, astar.closedset.len);
+        draw_bar(bar_win, buf);
+        wrefresh(bar_win);
         bot->draw_refresh_cb();
+
 
     }
 }

@@ -10,6 +10,8 @@
 #include "astar.h"
 #include "snake.h"
 
+#include "ui.h"
+
 struct Bot {
     uint32_t xsize;
     uint32_t ysize;
@@ -25,6 +27,6 @@ struct Bot {
 };
 
 void bot_init(struct Bot* bot, struct Game* game, uint32_t xsize, uint32_t ysize);
-void bot_run(struct Bot* bot, WINDOW* win);
+void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win);
 
 #endif

@@ -50,7 +50,7 @@ void on_sigint(int signum)
 void draw_snake_cb(Pos x, Pos y)
 {
     /* callback to draw snake segment to display */
-    add_str(field_win, y, x, CRED, CDEFAULT, SNAKE_CHR);
+    add_str(field_win, y, x, CMAGENTA, CDEFAULT, SNAKE_CHR);
 }
 
 void draw_food_cb(Pos x, Pos y)
@@ -254,7 +254,7 @@ void play_bot(struct State* s, struct Game* game)
     bot.draw_wall_cb = &draw_wall_cb;
     bot.draw_refresh_cb = &draw_refresh_cb;
 
-    bot_run(&bot, field_win);
+    bot_run(&bot, field_win, bar_win);
 }
 
 int main()
