@@ -28,6 +28,7 @@ static void draw_bar(WINDOW* win, char* str)
 }
 
 
+
 void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
 {
     // FIXME All references to curses should be removed from this module,
@@ -64,9 +65,12 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
             seg = seg->next;
         }
 
-        enum ASResult res;
+
+        // TODO find a way to see how many spots are reachable and only go there if at least 80 percent is reachable
+        // then we can kick in the AS_LONGEST route later in the process
 
         // solve path using algorithm, use longest route as snake grows
+        enum ASResult res;
         if (bot->game->snake.len < 100)
             res = astar_find_path(&astar, AS_SHORTEST);
         else
@@ -83,7 +87,7 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
         werase(field_win);
 
         // draw path
-        astar_draw(&astar, n_end);
+        //astar_draw(&astar, n_end);
 
         struct Node* n_prev = get_node(astar.grid, start->xpos, start->ypos, bot->xsize);
 

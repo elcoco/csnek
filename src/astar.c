@@ -169,7 +169,7 @@ struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t
 
 struct Node* astar_find_highest_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
 {
-    /* Go through set and find node with lowest fscore
+    /* Go through set and find node with highest fscore
      * returns node and its index in the set */
     *winner = *set->set;
     struct Node** n = set->set;
@@ -218,7 +218,8 @@ bool is_in_grid(Pos x, Pos y, uint16_t xsize, uint16_t ysize)
     return (x >= 0 && y >= 0 && x < xsize && y < ysize);
 }
 
-void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y) {
+void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y)
+{
     /* move node to openset if it doesn't exist in closedset */
     // TODO needs optimization
 
@@ -253,6 +254,78 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y) {
     }
 }
 
+
+uint32_t count_reachable(struct Astar* astar, struct Set* closedset, struct Node* n_cur)
+{
+    /* Recursive count of reachable nodes in grid from node n */
+    uint32_t amount = 0;
+
+    if (set_node_exists(closedset, n_cur))
+        return amount;
+
+    set_add_node(closedset, n_cur);
+
+    if (n_cur->is_wall)
+        return amount;
+
+    amount++;
+    astar->draw_open_cb(n_cur->x, n_cur->y);
+
+    // check all neighboring nodes
+    int8_t xy[4][2] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
+
+    for (int i=0 ; i<4 ; i++) {
+
+        Pos x = n_cur->x + xy[i][0];
+        Pos y = n_cur->y + xy[i][1];
+
+        if (!is_in_grid(x, y, astar->xsize, astar->ysize))
+            continue;
+
+        struct Node* n_neighbor = get_node(astar->grid, x, y, astar->xsize);
+
+        amount += count_reachable(astar, closedset, n_neighbor);
+    }
+
+    return amount;
+}
+
+float get_reachable(struct Astar* astar, struct Node* n_cur)
+{
+    /* Find percentage of reachable nodes starting from n_cur */
+
+    // follow back found path and set all nodes to wall
+    struct Node* n_tmp = n_cur->parent;
+    while (n_tmp->g != 0) {
+        n_tmp->is_wall = true;
+        n_tmp = n_tmp->parent;
+    }
+
+    // count all nodes marked as wall
+    int n_wall = 0;
+    for (int i=0 ; i<astar->xsize*astar->ysize ; i++) {
+        if (astar->grid[i].is_wall)
+            n_wall++;
+    }
+
+    // calculate unoccupied nodes (not wall)
+    int unoccupied = astar->xsize*astar->ysize - n_wall;
+
+    // create a set to store closed nodes in
+    struct Node* closed_arr[astar->xsize*astar->ysize];
+    struct Set set;
+    set.set = closed_arr;
+    set.len = 0;
+
+    // calculate reachable nodes
+    int amount = count_reachable(astar, &set, n_cur);
+    debug("%d amount: %d   %.1f%%\n", unoccupied, amount, ((float)amount/unoccupied)*100);
+
+    return ((float)amount/unoccupied)*100;
+}
+
+
+
 enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type)
 {
     struct Node* n_start = get_node(astar->grid, astar->x0, astar->y0, astar->xsize);
@@ -268,39 +341,40 @@ enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type)
     struct Node* n_cur;
     uint32_t n_cur_i;
 
+    // When all nodes in openset are evaluated we either solved the maze or
+    // there is no solution
     while (openset->len > 0) {
+
+        // Pick longest or shortest path
         if (path_type == AS_SHORTEST)
             astar_find_lowest_f(openset, &n_cur, &n_cur_i);
         else
             astar_find_highest_f(openset, &n_cur, &n_cur_i);
 
-        if (n_cur->x == n_end->x && n_cur->y == n_end->y)
+        // If current node is equal to the end node it means we solved the maze
+        if (n_cur->x == n_end->x && n_cur->y == n_end->y) {
+
+            if (get_reachable(astar, n_cur) < 80)
+                debug("find other path\n");
+
             return AS_SOLVED;
+        }
 
         set_add_node(closedset, n_cur);
         set_remove_node(openset, n_cur_i);
 
         // add neighbours of current node to openset
         // only if they do not eist in closedset
-        // NOTE: there is very clearly a bias towards North/East because
+        // NOTE: there is a clear bias towards North/East because
         //       that is wat we're checking first!
         add_to_openset(astar, n_cur, n_cur->x,   n_cur->y-1);
         add_to_openset(astar, n_cur, n_cur->x+1, n_cur->y);
         add_to_openset(astar, n_cur, n_cur->x,   n_cur->y+1);
         add_to_openset(astar, n_cur, n_cur->x-1, n_cur->y);
-
-        //set_debug(closedset, "closed");
-        //set_debug(openset, "open");
-
-
-        // drawing makes things a LOT slower
-        // astar_draw(astar, n_cur);
     }
 
-    //debug("DONE!\n");
-
-    // FIXME drawing will crash if there are no nodes
     astar_draw(astar, n_cur);
+
 
     return AS_UNSOLVED;
 }
