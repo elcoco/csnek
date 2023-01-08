@@ -34,6 +34,8 @@
 #define XSIZE 50
 #define YSIZE 50
 
+#define CHKSUM 123456
+
 enum ASResult {
     AS_SOLVED,
     AS_UNSOLVED,
@@ -60,6 +62,8 @@ struct Node {
 
     // keep reference to previous node
     struct Node* parent;
+
+    int chksum;
 };
 
 struct Set {
@@ -67,7 +71,6 @@ struct Set {
 
     // TODO find a more memory efficient way to store nodes
     struct Node** set;
-    //struct Node* set[100*100];
 };
 
 struct Astar {
@@ -100,9 +103,13 @@ struct Astar {
 void astar_init(struct Astar* astar, struct Node* grid, struct Node** openset, struct Node** closedset, uint16_t xsize, uint16_t ysize);
 void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1);
 void astar_debug(struct Astar* astar);
-enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type);
+enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type, uint16_t offset);
 
 struct Node* get_node(struct Node* grid, Pos x, Pos y, uint16_t xsize);
 void astar_draw(struct Astar* astar, struct Node* n_cur);
+
+bool set_node_exists(struct Set* set, struct Node* n);
+void set_add_node(struct Set* set, struct Node* n);
+bool is_in_grid(Pos x, Pos y, uint16_t xsize, uint16_t ysize);
 
 #endif

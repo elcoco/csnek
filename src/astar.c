@@ -26,6 +26,12 @@ void i2pos(uint32_t i, Pos* x, Pos* y, uint32_t xsize)
     *y = i / xsize;
 }
 
+bool is_in_grid(Pos x, Pos y, uint16_t xsize, uint16_t ysize)
+{
+    /* Check if coordinates are within grid dimensions */
+    return (x >= 0 && y >= 0 && x < xsize && y < ysize);
+}
+
 struct Node* get_node(struct Node* grid, Pos x, Pos y, uint16_t xsize)
 {
     return &grid[pos2i(x, y, xsize)];
@@ -62,6 +68,7 @@ void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1)
         i2pos(i, &n->x, &n->y, astar->xsize);
         n->is_wall = false;
         n->h = abs(x1 - n->x) + abs(y1 - n->y);
+        n->chksum = CHKSUM;
 
         /*
          * Set random walls for testing, don't forget to uncomment seed initiation for randomness
@@ -150,6 +157,20 @@ void astar_draw(struct Astar* astar, struct Node* n_cur)
     //astar->draw_path_cb(astar->x1, astar->y1);
 }
 
+int qsort_cmpfunc (const void* a, const void* b)
+{
+    const struct Node* n0 = *(const struct Node**)a;
+    const struct Node* n1 = *(const struct Node**)b;
+    return n0->f - n1->f;
+
+    //if (n0->f < n1->f)
+    //    return -1;
+    //else if (n0->f > n1->f)
+    //    return 1;
+    //else
+    //    return 0;
+}
+
 struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
 {
     /* Go through set and find node with lowest fscore
@@ -158,35 +179,56 @@ struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t
     struct Node** n = set->set;
     *winner_i = 0;
 
+    //debug("start ****************\n");
+    //for (int i=0 ; i<set->len ; i++)
+    //    debug("f: %d\n", set->set[i]->f);
+    //debug("end ****************\n");
+
     for (int i=0 ; i<set->len ; i++, n++) {
         if ((*n)->f < (*winner)->f) {
             *winner = *n;
             *winner_i = i;
+            if ((*winner)->chksum != CHKSUM)
+                debug("FAILED CHECKSUM!!!!!!!!!!!!\n");
         }
     }
     return *winner;
 }
 
-struct Node* astar_find_highest_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
+struct Node* astar_find_f(struct Set* set, struct Node** winner, uint32_t* winner_i, enum ASPathType ptype, uint32_t offset)
 {
-    /* Go through set and find node with highest fscore
+    /* Go through set and find node with lowest fscore
      * returns node and its index in the set */
-    *winner = *set->set;
-    struct Node** n = set->set;
-    *winner_i = 0;
 
-    for (int i=0 ; i<set->len ; i++, n++) {
-        if ((*n)->f > (*winner)->f) {
-            *winner = *n;
-            *winner_i = i;
-        }
+    if (set->len == 0) {
+        *winner = set->set[0];
+        *winner_i = 0;
+        return *winner;
     }
+
+    qsort(set->set, set->len-1, sizeof(struct Node*), &qsort_cmpfunc);
+
+    if (ptype == AS_SHORTEST) {
+        if (offset > set->len)
+            offset = set->len;
+
+        *winner   = set->set[offset];
+        *winner_i = offset;
+    }
+    else {
+        if (offset > set->len)
+            offset = set->len-1;
+
+        *winner   = set->set[set->len-1-offset];
+        *winner_i = set->len-1-offset;
+    }
+
     return *winner;
 }
 
 void set_remove_node(struct Set* set, uint32_t node_i)
 {
-    /* Remove node @node_i from array, shift everything to left */
+    /* Remove node at index node_i from array by everything to left */
     for (int i=node_i ; i<set->len ; i++)
         set->set[i] = set->set[i+1];
 
@@ -196,7 +238,6 @@ void set_remove_node(struct Set* set, uint32_t node_i)
 bool set_node_exists(struct Set* set, struct Node* n)
 {
     /* Find node in set */
-    //for (int i=0 ; i<set->len ; i++) {
     for (int i=set->len-1 ; i>=0 ; i--) {
         if (set->set[i] == n)
             return true;
@@ -210,12 +251,6 @@ void set_add_node(struct Set* set, struct Node* n)
         set->set[set->len] = n;
         set->len++;
     }
-}
-
-bool is_in_grid(Pos x, Pos y, uint16_t xsize, uint16_t ysize)
-{
-    /* Check if coordinates are within grid dimensions */
-    return (x >= 0 && y >= 0 && x < xsize && y < ysize);
 }
 
 void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y)
@@ -254,80 +289,12 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y)
     }
 }
 
-
-uint32_t count_reachable(struct Astar* astar, struct Set* closedset, struct Node* n_cur)
+enum ASResult astar_find_path(struct Astar* astar, enum ASPathType ptype, uint16_t offset)
 {
-    /* Recursive count of reachable nodes in grid from node n */
-    uint32_t amount = 0;
-
-    if (set_node_exists(closedset, n_cur))
-        return amount;
-
-    set_add_node(closedset, n_cur);
-
-    if (n_cur->is_wall)
-        return amount;
-
-    amount++;
-    astar->draw_open_cb(n_cur->x, n_cur->y);
-
-    // check all neighboring nodes
-    int8_t xy[4][2] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
-
-    for (int i=0 ; i<4 ; i++) {
-
-        Pos x = n_cur->x + xy[i][0];
-        Pos y = n_cur->y + xy[i][1];
-
-        if (!is_in_grid(x, y, astar->xsize, astar->ysize))
-            continue;
-
-        struct Node* n_neighbor = get_node(astar->grid, x, y, astar->xsize);
-
-        amount += count_reachable(astar, closedset, n_neighbor);
-    }
-
-    return amount;
-}
-
-float get_reachable(struct Astar* astar, struct Node* n_cur)
-{
-    /* Find percentage of reachable nodes starting from n_cur */
-
-    // follow back found path and set all nodes to wall
-    struct Node* n_tmp = n_cur->parent;
-    while (n_tmp->g != 0) {
-        n_tmp->is_wall = true;
-        n_tmp = n_tmp->parent;
-    }
-
-    // count all nodes marked as wall
-    int n_wall = 0;
-    for (int i=0 ; i<astar->xsize*astar->ysize ; i++) {
-        if (astar->grid[i].is_wall)
-            n_wall++;
-    }
-
-    // calculate unoccupied nodes (not wall)
-    int unoccupied = astar->xsize*astar->ysize - n_wall;
-
-    // create a set to store closed nodes in
-    struct Node* closed_arr[astar->xsize*astar->ysize];
-    struct Set set;
-    set.set = closed_arr;
-    set.len = 0;
-
-    // calculate reachable nodes
-    int amount = count_reachable(astar, &set, n_cur);
-    debug("%d amount: %d   %.1f%%\n", unoccupied, amount, ((float)amount/unoccupied)*100);
-
-    return ((float)amount/unoccupied)*100;
-}
-
-
-
-enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type)
-{
+    /* Find quickest or longest path from astar->xy0 to astar->xy1
+     * Path_type enum indicates longest or shortest
+     * Offset takes a less optimal route (optimal - offset)
+     */
     struct Node* n_start = get_node(astar->grid, astar->x0, astar->y0, astar->xsize);
     struct Node* n_end = get_node(astar->grid, astar->x1, astar->y1, astar->xsize);
 
@@ -336,7 +303,6 @@ enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type)
 
     // start with start node
     set_add_node(openset, n_start);
-    int i = 0;
 
     struct Node* n_cur;
     uint32_t n_cur_i;
@@ -345,20 +311,12 @@ enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type)
     // there is no solution
     while (openset->len > 0) {
 
-        // Pick longest or shortest path
-        if (path_type == AS_SHORTEST)
-            astar_find_lowest_f(openset, &n_cur, &n_cur_i);
-        else
-            astar_find_highest_f(openset, &n_cur, &n_cur_i);
+        //astar_find_lowest_f(openset, &n_cur, &n_cur_i);
+        astar_find_f(openset, &n_cur, &n_cur_i, ptype, offset);
 
         // If current node is equal to the end node it means we solved the maze
-        if (n_cur->x == n_end->x && n_cur->y == n_end->y) {
-
-            if (get_reachable(astar, n_cur) < 80)
-                debug("find other path\n");
-
+        if (n_cur->x == n_end->x && n_cur->y == n_end->y)
             return AS_SOLVED;
-        }
 
         set_add_node(closedset, n_cur);
         set_remove_node(openset, n_cur_i);
