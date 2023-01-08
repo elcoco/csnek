@@ -110,8 +110,12 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
         struct Node* openset[bot->xsize*bot->ysize];
         struct Node* closedset[bot->xsize*bot->ysize];
 
+        // last node in found path
         struct Node* n_end;
-        struct Seg* start;
+
+        // start and endpoints
+        struct FoodItem* end = *bot->game->food.fhead;
+        struct Seg* start = *bot->game->snake.stail;
 
         int offset = 0;
 
@@ -122,6 +126,7 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
             memset(&closedset, 0, sizeof(struct Node*) * bot->xsize*bot->ysize);
 
             astar_init(&astar, grid, openset, closedset, bot->xsize, bot->ysize);
+            astar_set_points(&astar, start->xpos, start->ypos, end->xpos, end->ypos);
 
             // disable drawing by uncommenting
             astar.draw_open_cb    = bot->draw_open_cb;
@@ -130,12 +135,6 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
             //astar.draw_wall_cb    = bot->draw_wall_cb;
             //astar.draw_refresh_cb = bot->draw_refresh_cb;
 
-
-            // find start and end points
-            struct FoodItem* end = *bot->game->food.fhead;
-            start = *bot->game->snake.stail;
-            astar_set_points(&astar, start->xpos, start->ypos, end->xpos, end->ypos);
-
             // set snake body as wall in astar
             struct Seg* seg = *bot->game->snake.shead;
             while (seg != NULL) {
@@ -143,10 +142,6 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
                 n->is_wall = true;
                 seg = seg->next;
             }
-
-
-            // TODO find a way to see how many spots are reachable and only go there if at least 80 percent is reachable
-            // then we can kick in the AS_LONGEST route later in the process
 
             // solve path using algorithm, use longest route as snake grows
             enum ASResult res;
@@ -157,19 +152,16 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
 
             if (res == AS_UNSOLVED) {
                 show_msg("ASTAR UNSOLVABLE");
-                break;
+                return;
             }
 
             // get last node in found path from astar
             n_end = get_node(astar.grid, end->xpos, end->ypos, bot->xsize);
+
+            // if this results into a path that will trap the snek, we try to find another route next
             offset++;
-
         }
-        while (get_reachable(&astar, n_end) < 80);
-
-
-        if (get_reachable(&astar, n_end) < 80)
-            debug("find other path\n");
+        while (get_reachable(&astar, n_end) < 70);
 
         werase(field_win);
 

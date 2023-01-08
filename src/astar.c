@@ -179,17 +179,27 @@ struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t
     struct Node** n = set->set;
     *winner_i = 0;
 
-    //debug("start ****************\n");
-    //for (int i=0 ; i<set->len ; i++)
-    //    debug("f: %d\n", set->set[i]->f);
-    //debug("end ****************\n");
-
     for (int i=0 ; i<set->len ; i++, n++) {
         if ((*n)->f < (*winner)->f) {
             *winner = *n;
             *winner_i = i;
-            if ((*winner)->chksum != CHKSUM)
-                debug("FAILED CHECKSUM!!!!!!!!!!!!\n");
+        }
+    }
+    return *winner;
+}
+
+struct Node* astar_find_hightst_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
+{
+    /* Go through set and find node with lowest fscore
+     * returns node and its index in the set */
+    *winner = *set->set;
+    struct Node** n = set->set;
+    *winner_i = 0;
+
+    for (int i=0 ; i<set->len ; i++, n++) {
+        if ((*n)->f > (*winner)->f) {
+            *winner = *n;
+            *winner_i = i;
         }
     }
     return *winner;
@@ -209,14 +219,16 @@ struct Node* astar_find_f(struct Set* set, struct Node** winner, uint32_t* winne
     qsort(set->set, set->len-1, sizeof(struct Node*), &qsort_cmpfunc);
 
     if (ptype == AS_SHORTEST) {
-        if (offset > set->len)
-            offset = set->len;
+        if (offset >= set->len)
+            offset = set->len-1;
 
         *winner   = set->set[offset];
         *winner_i = offset;
     }
     else {
-        if (offset > set->len)
+        //astar_find_hightst_f(set, winner, winner_i);
+
+        if ((int16_t)offset >= (int16_t)set->len)
             offset = set->len-1;
 
         *winner   = set->set[set->len-1-offset];
