@@ -2,7 +2,7 @@
 
 A simple ncurses snake clone for linux.  
 
-[snek.jpg](snek.jpq)
+![snek.jpg](snek.jpg)
 
 ## Controls
 
