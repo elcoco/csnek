@@ -2,7 +2,7 @@
 
 A simple ncurses snake clone for linux.  
 
-![snek.jpg](snek.jpg)
+<img src="snek.jpg" width="200" />
 
 ## Controls
 
