@@ -1,6 +1,7 @@
-# csnek
+# snek bot
 
-A simple ncurses snake clone for linux.  
+A snake game AI written in C.  
+Can also be played manually but why would you do that?  
 
 <img src="snek.jpg" width="200" />
 
