@@ -2,6 +2,8 @@
 
 A simple ncurses snake clone for linux.  
 
+[snek.jpg](snek.jpq)
+
 ## Controls
 
     h, ←    move left

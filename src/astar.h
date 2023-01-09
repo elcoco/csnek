@@ -103,7 +103,7 @@ struct Astar {
 void astar_init(struct Astar* astar, struct Node* grid, struct Node** openset, struct Node** closedset, uint16_t xsize, uint16_t ysize);
 void astar_set_points(struct Astar* astar, Pos x0, Pos y0, Pos x1, Pos y1);
 void astar_debug(struct Astar* astar);
-enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type, uint16_t offset);
+enum ASResult astar_find_path(struct Astar* astar, enum ASPathType path_type);
 
 struct Node* get_node(struct Node* grid, Pos x, Pos y, uint16_t xsize);
 void astar_draw(struct Astar* astar, struct Node* n_cur);

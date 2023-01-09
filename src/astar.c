@@ -176,9 +176,9 @@ struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t
     /* Go through set and find node with lowest fscore
      * returns node and its index in the set */
     *winner = *set->set;
-    struct Node** n = set->set;
     *winner_i = 0;
 
+    struct Node** n = set->set;
     for (int i=0 ; i<set->len ; i++, n++) {
         if ((*n)->f < (*winner)->f) {
             *winner = *n;
@@ -188,14 +188,15 @@ struct Node* astar_find_lowest_f(struct Set* set, struct Node** winner, uint32_t
     return *winner;
 }
 
-struct Node* astar_find_hightst_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
+struct Node* astar_find_highest_f(struct Set* set, struct Node** winner, uint32_t* winner_i)
 {
-    /* Go through set and find node with lowest fscore
+    /* Go through set and find first node with lowest fscore
      * returns node and its index in the set */
     *winner = *set->set;
-    struct Node** n = set->set;
     *winner_i = 0;
+    // TODO find a way to get second,third,... option
 
+    struct Node** n = set->set;
     for (int i=0 ; i<set->len ; i++, n++) {
         if ((*n)->f > (*winner)->f) {
             *winner = *n;
@@ -205,7 +206,7 @@ struct Node* astar_find_hightst_f(struct Set* set, struct Node** winner, uint32_
     return *winner;
 }
 
-struct Node* astar_find_f(struct Set* set, struct Node** winner, uint32_t* winner_i, enum ASPathType ptype, uint32_t offset)
+struct Node* astar_find_f(struct Set* set, struct Node** winner, uint32_t* winner_i, enum ASPathType ptype)
 {
     /* Go through set and find node with lowest fscore
      * returns node and its index in the set */
@@ -216,24 +217,10 @@ struct Node* astar_find_f(struct Set* set, struct Node** winner, uint32_t* winne
         return *winner;
     }
 
-    qsort(set->set, set->len-1, sizeof(struct Node*), &qsort_cmpfunc);
-
-    if (ptype == AS_SHORTEST) {
-        if (offset >= set->len)
-            offset = set->len-1;
-
-        *winner   = set->set[offset];
-        *winner_i = offset;
-    }
-    else {
-        //astar_find_hightst_f(set, winner, winner_i);
-
-        if ((int16_t)offset >= (int16_t)set->len)
-            offset = set->len-1;
-
-        *winner   = set->set[set->len-1-offset];
-        *winner_i = set->len-1-offset;
-    }
+    if (ptype == AS_SHORTEST)
+        astar_find_lowest_f(set, winner, winner_i);
+    else
+        astar_find_highest_f(set, winner, winner_i);
 
     return *winner;
 }
@@ -265,7 +252,7 @@ void set_add_node(struct Set* set, struct Node* n)
     }
 }
 
-void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y)
+void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y, enum ASPathType ptype)
 {
     /* move node to openset if it doesn't exist in closedset */
     // TODO needs optimization
@@ -292,7 +279,14 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y)
     // check if one of these is true:
     //   - new path is shorter than old path
     //   - node is not in openset
-    if ((n->parent != NULL && cur_f < n->f) || !in_openset) {
+    
+    bool eval_g;
+    if (ptype == AS_SHORTEST)
+        eval_g = cur_g < n->g;
+    else
+        eval_g = cur_g > n->g;
+
+    if ((n->parent != NULL && eval_g) || !in_openset) {
         n->parent = parent;
         n->g = cur_g;
         n->f = cur_f;
@@ -301,11 +295,10 @@ void add_to_openset(struct Astar* astar, struct Node* parent, Pos x, Pos y)
     }
 }
 
-enum ASResult astar_find_path(struct Astar* astar, enum ASPathType ptype, uint16_t offset)
+enum ASResult astar_find_path(struct Astar* astar, enum ASPathType ptype)
 {
     /* Find quickest or longest path from astar->xy0 to astar->xy1
      * Path_type enum indicates longest or shortest
-     * Offset takes a less optimal route (optimal - offset)
      */
     struct Node* n_start = get_node(astar->grid, astar->x0, astar->y0, astar->xsize);
     struct Node* n_end = get_node(astar->grid, astar->x1, astar->y1, astar->xsize);
@@ -323,8 +316,11 @@ enum ASResult astar_find_path(struct Astar* astar, enum ASPathType ptype, uint16
     // there is no solution
     while (openset->len > 0) {
 
-        //astar_find_lowest_f(openset, &n_cur, &n_cur_i);
-        astar_find_f(openset, &n_cur, &n_cur_i, ptype, offset);
+        // find node with lowest or highest fscore
+        if (ptype == AS_SHORTEST)
+            astar_find_lowest_f(openset, &n_cur, &n_cur_i);
+        else
+            astar_find_highest_f(openset, &n_cur, &n_cur_i);
 
         // If current node is equal to the end node it means we solved the maze
         if (n_cur->x == n_end->x && n_cur->y == n_end->y)
@@ -337,10 +333,10 @@ enum ASResult astar_find_path(struct Astar* astar, enum ASPathType ptype, uint16
         // only if they do not eist in closedset
         // NOTE: there is a clear bias towards North/East because
         //       that is wat we're checking first!
-        add_to_openset(astar, n_cur, n_cur->x,   n_cur->y-1);
-        add_to_openset(astar, n_cur, n_cur->x+1, n_cur->y);
-        add_to_openset(astar, n_cur, n_cur->x,   n_cur->y+1);
-        add_to_openset(astar, n_cur, n_cur->x-1, n_cur->y);
+        add_to_openset(astar, n_cur, n_cur->x,   n_cur->y-1, ptype);
+        add_to_openset(astar, n_cur, n_cur->x+1, n_cur->y,   ptype);
+        add_to_openset(astar, n_cur, n_cur->x,   n_cur->y+1, ptype);
+        add_to_openset(astar, n_cur, n_cur->x-1, n_cur->y,   ptype);
     }
 
     astar_draw(astar, n_cur);
