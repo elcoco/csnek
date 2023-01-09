@@ -1,11 +1,12 @@
 #include "bot.h"
 
-void bot_init(struct Bot* bot, struct Game* game, uint32_t xsize, uint32_t ysize)
+void bot_init(struct Bot* bot, struct Game* game, struct State* state, uint32_t xsize, uint32_t ysize)
 {
     bot->xsize = xsize;
     bot->ysize = ysize;
 
     bot->game = game;
+    bot->state = state;
 }
 
 enum Direction pos_to_dir(Pos x0, Pos y0, Pos x1, Pos y1)
@@ -95,7 +96,7 @@ float get_reachable(struct Astar* astar, struct Node* n_cur)
     return ((float)amount/unoccupied)*100;
 }
 
-enum GameState exec_path(struct Game* game, struct Node* n_end, WINDOW* win)
+enum GameState exec_path(struct Game* game, struct Node* n_end, WINDOW* win, float speed_ms)
 {
     /* Execute found path in snake game */
     enum GameState gs;
@@ -113,7 +114,7 @@ enum GameState exec_path(struct Game* game, struct Node* n_end, WINDOW* win)
         werase(win);
         game_draw(game);
         wrefresh(win);
-        usleep(5*1000);
+        usleep(speed_ms*1000);
     }
     return gs;
 }
@@ -190,7 +191,7 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
         }
 
         struct Node* n_end = get_node(astar.grid, xend, yend, bot->xsize);
-        exec_path(bot->game, n_end, field_win);
+        exec_path(bot->game, n_end, field_win, bot->state->speed_ms);
 
         float perc_occ = get_perc_used(&astar);
 

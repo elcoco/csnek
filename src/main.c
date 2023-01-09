@@ -11,36 +11,22 @@
 #include "utils.h"
 #include "astar.h"
 #include "bot.h"
+#include "state.h"
 
 // grow n segments when eating food
-#define GROW_FAC 1
+#define DEFAULT_GROW_AMOUNT 1
 
 // amount of food items that are on screen at once
-#define MAXFOOD 1
+#define DEFAULT_MAXFOOD 1
 
 // interval inbetween frames
-#define INTERVAL 100*1000
+#define DEFAULT_SPEED_MS 100
 
 #define BAR_YSIZE 1
 #define SLEEP_CHECK_INTERVAL 50
 #define SNAKE_CHR "█"
 #define FOOD_CHR "█"
 
-enum GameMode {
-    GM_BOT,
-    GM_USER
-};
-
-struct State {
-    enum Direction v;
-    bool is_stopped;
-    bool is_paused;
-
-    Pos xsize;
-    Pos ysize;
-
-    enum GameMode mode;
-};
 
 WINDOW* root_win;
 WINDOW* bar_win;
@@ -212,7 +198,7 @@ void play_game(struct State* s, struct Game* game)
             ui_refresh(bar_win);
         }
 
-        if (non_blocking_sleep(INTERVAL, &get_user_input, s)) {
+        if (non_blocking_sleep(s->speed_ms*1000, &get_user_input, s)) {
         }
     }
 }
@@ -246,13 +232,13 @@ void draw_refresh_cb()
     ui_refresh(field_win);
 }
 
-void play_bot(struct State* s, struct Game* game)
+void play_bot(struct State* state, struct Game* game)
 {
     uint16_t xsize, ysize;
     getmaxyx(field_win, ysize, xsize);
 
     struct Bot bot;
-    bot_init(&bot, game, xsize, ysize);
+    bot_init(&bot, game, state, xsize, ysize);
 
     bot.draw_open_cb = &draw_open_cb;
     bot.draw_closed_cb = &draw_closed_cb;
@@ -265,6 +251,13 @@ void play_bot(struct State* s, struct Game* game)
 
 void print_usage()
 {
+    printf("SNEKBOT :: A bot that plays snake\n");
+    printf("Optional args:\n");
+    printf("    -H      play the game like a real human! (default)\n");
+    printf("    -b      let the bot do the work!\n");
+    printf("    -s      speed in miliseconds inbetween draws (default=100)\n");
+    printf("    -g      grow amount (default=1)\n");
+    printf("    -f      amount of food generated (default=1)\n");
 }
 
 bool parse_args(struct State* state, int argc, char** argv)
@@ -272,12 +265,30 @@ bool parse_args(struct State* state, int argc, char** argv)
     int option;
 
     state->mode = GM_USER;
+    state->speed_ms = DEFAULT_SPEED_MS;
+    state->grow_amount = DEFAULT_GROW_AMOUNT;
+    state->max_food = DEFAULT_MAXFOOD;
 
-    while((option = getopt(argc, argv, ":b")) != -1){ //get option from the getopt() method
+    while((option = getopt(argc, argv, "bHhs:g:f:")) != -1){ //get option from the getopt() method
         switch (option) {
             case 'b':
                 state->mode = GM_BOT;
                 break;
+            case 'u':
+                state->mode = GM_USER;
+                break;
+            case 's':
+                state->speed_ms = atoi(optarg);
+                break;
+            case 'f':
+                state->max_food = atoi(optarg);
+                break;
+            case 'g':
+                state->grow_amount = atoi(optarg);
+                break;
+            case 'h':
+                print_usage();
+                return false;
             case ':': 
                 printf("option needs a value\n"); 
                 return false;
@@ -286,10 +297,6 @@ bool parse_args(struct State* state, int argc, char** argv)
                 return false;
        }
     }
-    //if (argc == 1) {
-    //    print_usage();
-    //    return false;
-    //}
     return true;
 }
 
@@ -330,9 +337,9 @@ int main(int argc, char** argv)
     // setup snake structs
     struct Game game;
 
-    game_init(&game, xsize, field_ysize, MAXFOOD);
+    game_init(&game, xsize, field_ysize, s.max_food);
 
-    game.grow_fac = GROW_FAC;
+    game.grow_fac = s.grow_amount;
     game.snake.draw_cb = &draw_snake_cb;
     game.food.draw_cb = &draw_food_cb;
 
