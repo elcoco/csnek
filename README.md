@@ -2,6 +2,7 @@
 
 A snake game AI written in C.  
 Can also be played manually but why would you do that?  
+This project is very much in development.  
 
 <img src="snek.jpg" width="200" />
 
