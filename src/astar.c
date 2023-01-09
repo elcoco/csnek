@@ -206,25 +206,6 @@ struct Node* astar_find_highest_f(struct Set* set, struct Node** winner, uint32_
     return *winner;
 }
 
-struct Node* astar_find_f(struct Set* set, struct Node** winner, uint32_t* winner_i, enum ASPathType ptype)
-{
-    /* Go through set and find node with lowest fscore
-     * returns node and its index in the set */
-
-    if (set->len == 0) {
-        *winner = set->set[0];
-        *winner_i = 0;
-        return *winner;
-    }
-
-    if (ptype == AS_SHORTEST)
-        astar_find_lowest_f(set, winner, winner_i);
-    else
-        astar_find_highest_f(set, winner, winner_i);
-
-    return *winner;
-}
-
 void set_remove_node(struct Set* set, uint32_t node_i)
 {
     /* Remove node at index node_i from array by everything to left */
@@ -340,7 +321,6 @@ enum ASResult astar_find_path(struct Astar* astar, enum ASPathType ptype)
     }
 
     astar_draw(astar, n_cur);
-
 
     return AS_UNSOLVED;
 }

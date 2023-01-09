@@ -65,7 +65,6 @@ uint32_t count_reachable(struct Astar* astar, struct Set* closedset, struct Node
 float get_reachable(struct Astar* astar, struct Node* n_cur)
 {
     /* Find percentage of reachable nodes starting from n_cur */
-
     // follow back found path and set all nodes to wall
     struct Node* n_tmp = n_cur->parent;
     while (n_tmp->g != 0) {
@@ -96,9 +95,11 @@ float get_reachable(struct Astar* astar, struct Node* n_cur)
     return ((float)amount/unoccupied)*100;
 }
 
-void exec_path(struct Game* game, struct Node* n_end, WINDOW* win)
+enum GameState exec_path(struct Game* game, struct Node* n_end, WINDOW* win)
 {
-    // Execute found path in snake game
+    /* Execute found path in snake game */
+    enum GameState gs;
+
     for (int gi=1 ; gi<=n_end->g ; gi++) {
 
         struct Node* n = n_end;
@@ -107,12 +108,25 @@ void exec_path(struct Game* game, struct Node* n_end, WINDOW* win)
             n = n->parent;
 
         // apply move
-        game_next(game, pos_to_dir(n->parent->x, n->parent->y, n->x, n->y));
+        gs = game_next(game, pos_to_dir(n->parent->x, n->parent->y, n->x, n->y));
 
         werase(win);
         game_draw(game);
         wrefresh(win);
+        usleep(5*1000);
     }
+    return gs;
+}
+
+float get_perc_used(struct Astar* astar)
+{
+    /* Calculate percentage of occupied nodes (that are marked as wall) */
+    int n_wall = 0;
+    for (int gi=0 ; gi<astar->xsize*astar->ysize ; gi++) {
+        if (astar->grid[gi].is_wall)
+            n_wall++;
+    }
+    return (float)n_wall/(astar->xsize*astar->ysize)*100;
 }
 
 void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
@@ -154,9 +168,9 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
         astar_set_points(&astar, xstart, ystart, xend, yend);
 
         // disable drawing by uncommenting
-        astar.draw_open_cb    = bot->draw_open_cb;
-        astar.draw_closed_cb  = bot->draw_closed_cb;
-        astar.draw_path_cb    = bot->draw_path_cb;
+        //astar.draw_open_cb    = bot->draw_open_cb;
+        //astar.draw_closed_cb  = bot->draw_closed_cb;
+        //astar.draw_path_cb    = bot->draw_path_cb;
         //astar.draw_wall_cb    = bot->draw_wall_cb;
         //astar.draw_refresh_cb = bot->draw_refresh_cb;
 
@@ -178,15 +192,7 @@ void bot_run(struct Bot* bot, WINDOW* field_win, WINDOW* bar_win)
         struct Node* n_end = get_node(astar.grid, xend, yend, bot->xsize);
         exec_path(bot->game, n_end, field_win);
 
-
-        // count all nodes marked as wall
-        int n_wall = 0;
-        for (int i=0 ; i<astar.xsize*astar.ysize ; i++) {
-            if (astar.grid[i].is_wall)
-                n_wall++;
-        }
-        // calculate unoccupied nodes (not wall)
-        float perc_occ = (float)n_wall/(astar.xsize*astar.ysize)*100;
+        float perc_occ = get_perc_used(&astar);
 
         char buf[256] = "";
         sprintf(buf, "i: %d  snek_len: %d  score: %d, os_len: %d, cs_len: %d, occ: %.2f%%", i, bot->game->snake.len, bot->game->score, astar.openset.len, astar.closedset.len, perc_occ);

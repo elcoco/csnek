@@ -13,7 +13,7 @@
 #include "bot.h"
 
 // grow n segments when eating food
-#define GROW_FAC 7
+#define GROW_FAC 1
 
 // amount of food items that are on screen at once
 #define MAXFOOD 1
@@ -26,6 +26,10 @@
 #define SNAKE_CHR "█"
 #define FOOD_CHR "█"
 
+enum GameMode {
+    GM_BOT,
+    GM_USER
+};
 
 struct State {
     enum Direction v;
@@ -34,6 +38,8 @@ struct State {
 
     Pos xsize;
     Pos ysize;
+
+    enum GameMode mode;
 };
 
 WINDOW* root_win;
@@ -50,7 +56,7 @@ void on_sigint(int signum)
 void draw_snake_cb(Pos x, Pos y)
 {
     /* callback to draw snake segment to display */
-    add_str(field_win, y, x, CMAGENTA, CDEFAULT, SNAKE_CHR);
+    add_str(field_win, y, x, CRED, CDEFAULT, SNAKE_CHR);
 }
 
 void draw_food_cb(Pos x, Pos y)
@@ -257,7 +263,37 @@ void play_bot(struct State* s, struct Game* game)
     bot_run(&bot, field_win, bar_win);
 }
 
-int main()
+void print_usage()
+{
+}
+
+bool parse_args(struct State* state, int argc, char** argv)
+{
+    int option;
+
+    state->mode = GM_USER;
+
+    while((option = getopt(argc, argv, ":b")) != -1){ //get option from the getopt() method
+        switch (option) {
+            case 'b':
+                state->mode = GM_BOT;
+                break;
+            case ':': 
+                printf("option needs a value\n"); 
+                return false;
+            case '?': 
+                print_usage();
+                return false;
+       }
+    }
+    //if (argc == 1) {
+    //    print_usage();
+    //    return false;
+    //}
+    return true;
+}
+
+int main(int argc, char** argv)
 {
     // for UTF8 in curses, messes with atof() see: read_stdin()
     setlocale(LC_ALL, "");
@@ -268,6 +304,12 @@ int main()
     action.sa_handler = on_sigint;
     sigaction(SIGINT, &action, NULL);
 
+    struct State s;
+    state_init(&s);
+
+    if (!parse_args(&s, argc, argv))
+        return 1;
+
 
     // setup ncurses windows
     ui_init();
@@ -276,6 +318,8 @@ int main()
 
     int ysize, xsize;
     getmaxyx(root_win, ysize, xsize);
+    //xsize = 30;
+    //ysize = 30;
 
     const int field_ysize = ysize - BAR_YSIZE;
 
@@ -284,18 +328,18 @@ int main()
 
 
     // setup snake structs
-    struct State s;
     struct Game game;
 
-    state_init(&s);
     game_init(&game, xsize, field_ysize, MAXFOOD);
 
     game.grow_fac = GROW_FAC;
     game.snake.draw_cb = &draw_snake_cb;
     game.food.draw_cb = &draw_food_cb;
 
-    //play_game(&s, &game);
-    play_bot(&s, &game);
+    if (s.mode == GM_USER)
+        play_game(&s, &game);
+    else
+        play_bot(&s, &game);
 
     ui_cleanup();
 }
