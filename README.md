@@ -1,6 +1,6 @@
 # snek bot
 
-A snake game AI written in C.  
+A snake game AI written in C using ncurses.  
 Can also be played manually but why would you do that?  
 This project is very much in development.  
 
