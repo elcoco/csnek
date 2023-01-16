@@ -1,10 +1,29 @@
-# snek bot
+# CSNEK :: A bot that plays snake
 
 A snake game AI written in C using ncurses.  
 Can also be played manually but why would you do that?  
+
 This project is very much in development.  
 
 <img src="snek.jpg" width="200" />
+
+## Compile and run
+
+    make
+
+    # run bot
+    ./csnek -b -s 2 
+
+## Commandline args
+
+    $ ./csnek -h                                                                                                                             17:29:46
+    CSNEK :: A bot that plays snake
+    Optional args:
+        -H      play the game like a real human! (default)
+        -b      let the bot do the work!
+        -s      speed in miliseconds inbetween draws (default=100)
+        -g      grow amount (default=1)
+        -f      amount of food generated (default=1)
 
 ## Controls
 

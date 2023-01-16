@@ -153,7 +153,6 @@ void state_init(struct State* s)
     s->is_paused = false;
 
     getmaxyx(root_win, s->xsize, s->ysize);
-
 }
 
 void show_msg(char* msg)
