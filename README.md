@@ -1,7 +1,7 @@
 # CSNEK :: A bot that plays snake
 
 A snake game AI written in C using ncurses.  
-The bot uses the A* algorithm to find it's path toward the food.  
+The bot uses the A* algorithm to find it's path towards the food.  
 More info: [wikipedia](https://en.wikipedia.org/wiki/A*_search_algorithm)  
 The game could also be played manually but why would you do that?  
 
