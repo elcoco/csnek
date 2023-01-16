@@ -2,7 +2,7 @@
 
 A snake game AI written in C using ncurses.  
 The bot uses the A* algorithm to find it's path toward the food.  
-More info: [https://en.wikipedia.org/wiki/A*_search_algorithm](wikipedia)  
+More info: [wikipedia](https://en.wikipedia.org/wiki/A*_search_algorithm)  
 Can also be played manually but why would you do that?  
 
 This project is very much in development.  
