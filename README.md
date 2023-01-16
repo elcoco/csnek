@@ -25,7 +25,7 @@ This project is very much in development.
         -g      grow amount (default=1)
         -f      amount of food generated (default=1)
 
-## Controls
+## Controls when playing manually
 
     h, ←    move left
     j, ↓    move down
